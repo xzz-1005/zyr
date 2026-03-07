@@ -1,9 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { areaList } from '@vant/area-data'
 import { unionLogin } from '../api/union'
+import homeBg from '../assets/images/home-bg.png'
 
-const activeTab = ref(0)
+const router = useRouter()
 const assets = ref([])
 const assetOptions = [
   { label: '有车', value: 'car' },
@@ -15,17 +17,28 @@ const assetOptions = [
 ]
 const cityText = ref('')
 const showAreaPicker = ref(false)
+const areaRef = ref(null)
+/** 仅当因未选城市点击主按钮而打开弹层时为 true，用于显示「跳过」和「保存并提交」 */
+const areaPopupFromCta = ref(false)
 
 const toggleAsset = (value) => {
+  const isNone = value === 'none'
   const idx = assets.value.indexOf(value)
-  if (idx === -1) {
-    assets.value = [...assets.value, value]
+  if (isNone) {
+    assets.value = idx === -1 ? ['none'] : []
   } else {
-    assets.value = assets.value.filter((v) => v !== value)
+    let next = assets.value.filter((v) => v !== 'none')
+    if (idx === -1) {
+      next = [...next, value]
+    } else {
+      next = next.filter((v) => v !== value)
+    }
+    assets.value = next
   }
 }
 
 const showCityPicker = () => {
+  areaPopupFromCta.value = false
   showAreaPicker.value = true
 }
 
@@ -34,9 +47,32 @@ const onAreaConfirm = ({ selectedOptions }) => {
   showAreaPicker.value = false
 }
 
+const onSkipArea = () => {
+  showAreaPicker.value = false;
+  router.push('/download')
+}
+
+const onSaveAndSubmit = () => {
+  const options = areaRef.value?.getSelectedOptions?.()
+  if (options?.length) {
+    cityText.value = options.map((o) => o.text).join(' ')
+  }
+  showAreaPicker.value = false
+}
+
 const unionLoginParams = {
   productCode: 'PRODUCT1',
   encryptParam: '16235487455',
+}
+
+const handleViewLimit = () => {
+  if (!cityText.value) {
+    areaPopupFromCta.value = true
+    showAreaPicker.value = true
+    return
+  }
+  // 前置逻辑：埋点、提交表单等
+  router.push('/download')
 }
 
 onMounted(() => {
@@ -51,26 +87,25 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="page">
+  <div class="page" :style="{ backgroundImage: `url(${homeBg})` }">
     <!-- 顶部蓝色祝贺条 -->
     <div class="header-bar">
       <span class="header-text">恭喜你! 成为指易融优质用户</span>
     </div>
 
-    <!-- 指易融 | 让金融更 -->
-    <van-tabs v-model:active="activeTab" class="main-tabs" shrink>
-      <van-tab title="指易融" />
-      <van-tab title="让金融更" />
-    </van-tabs>
-
     <div class="content">
       <!-- 预估最高综合额度卡片 -->
       <div class="card estimate-card">
+        <div class="estimate-card-header">
+          <div class="estimate-card-header-title">指易融</div>
+          <div class="estimate-card-header-divider"></div>
+          <div class="estimate-card-header-subtitle">让金融更简单</div>
+        </div>
         <div class="estimate-title">预估最高综合额度(元)</div>
-        <div class="estimate-sub">(预估总额已包含手续费)</div>
+        <div class="estimate-sub">（实际以最终审批结果为准）</div>
         <div class="estimate-amount">200,000</div>
         <div class="estimate-desc">
-          年化综合借款成本（率）5%~24% 借1万元每日息费0.8元起
+          年化综合融资成本（单利）5%-24% 借1万用1年日均息费0.8元起
         </div>
       </div>
 
@@ -107,7 +142,7 @@ onMounted(() => {
       </div>
 
       <!-- 主按钮 -->
-      <van-button type="primary" block round class="cta-btn">
+      <van-button type="primary" block round class="cta-btn" @click="handleViewLimit">
         点击查看您的专属额度
       </van-button>
 
@@ -120,94 +155,123 @@ onMounted(() => {
     <!-- 省市区选择 -->
     <van-popup v-model:show="showAreaPicker" position="bottom" round>
       <van-area
-        title="选择省市区"
+        ref="areaRef"
+        title="选择常驻省份"
         :area-list="areaList"
+        :columns-num="2"
         @confirm="onAreaConfirm"
         @cancel="showAreaPicker = false"
-      />
+      >
+        <template v-if="areaPopupFromCta" #confirm>
+          <span @click="onSkipArea">跳过</span>
+        </template>
+      </van-area>
+      <van-button v-if="areaPopupFromCta" type="primary" block round class="area-submit-btn" @click="onSaveAndSubmit">
+        保存并提交
+      </van-button>
     </van-popup>
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .page {
   min-height: 100vh;
   background: #f5f5f5;
-  padding-bottom: 32px;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 .header-bar {
-  background: #1989fa;
   color: #fff;
   text-align: center;
-  padding: 14px 16px;
-  font-size: 15px;
-}
+  padding: 16px 0;
+  font-size: 20px;
 
-.main-tabs {
-  background: #e8f4ff;
-}
-
-.main-tabs :deep(.van-tabs__wrap) {
-  height: 44px;
-}
-
-.main-tabs :deep(.van-tab) {
-  font-size: 15px;
-}
-
-.main-tabs :deep(.van-tabs__line) {
-  background: #1989fa;
-}
-
-.main-tabs :deep(.van-tabs__nav--line) {
-  padding-bottom: 0;
+  .header-text {
+    line-height: 26px;
+  }
 }
 
 .content {
-  padding: 12px 16px;
+  padding: 0 16px;
 }
 
 .card {
   background: #fff;
   border-radius: 12px;
-  padding: 20px 16px;
   margin-bottom: 12px;
 }
 
 .estimate-card {
   text-align: center;
+
+  .estimate-card-header {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    height: 36px;
+    background-color: #e5f2ff;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .estimate-card-header-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #056EEA;
+  }
+
+  .estimate-card-header-divider {
+    width: 1px;
+    height: 16px;
+    background: #056EEA;
+    margin: 0 8px;
+  }
+
+  .estimate-card-header-subtitle {
+    font-size: 12px;
+    color: #056EEA;
+  }
 }
 
 .estimate-title {
-  font-size: 15px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
   color: #323233;
-  margin-bottom: 4px;
+  margin-bottom: 1px;
+  margin-top: 16px;
 }
 
 .estimate-sub {
-  font-size: 12px;
-  color: #969799;
-  margin-bottom: 16px;
+  font-size: 10px;
+  color: #BEC0C2;
+  line-height: 20px;
 }
 
 .estimate-amount {
-  font-size: 36px;
-  font-weight: 600;
+  font-size: 56px;
+  font-weight: 700;
   color: #323233;
-  letter-spacing: 1px;
-  margin-bottom: 12px;
+  line-height: 56px;
+  margin-bottom: 7px;
 }
 
 .estimate-desc {
-  font-size: 12px;
-  color: #969799;
-  line-height: 1.5;
+  font-size: 10px;
+  color: #BEC0C2;
+  line-height: 20px;
+  padding-bottom: 20px;
+}
+
+.info-card {
+  padding: 12px;
 }
 
 .info-card .card-title {
-  font-size: 15px;
-  color: #323233;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333333E5;
   margin-bottom: 16px;
 }
 
@@ -288,5 +352,13 @@ onMounted(() => {
   font-size: 11px;
   color: #969799;
   line-height: 1.6;
+}
+
+.area-submit-btn {
+  margin: 16px;
+  margin-top: 0;
+  height: 44px;
+  font-size: 15px;
+  width: calc(100% - 32px);
 }
 </style>

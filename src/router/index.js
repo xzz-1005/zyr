@@ -7,8 +7,12 @@ const routes = [
     component: () => import('../views/CreditLimitPage.vue'),
     meta: { title: '指易融' },
   },
-  // 后续按路径添加更多页面，例如：
-  // { path: '/other', name: 'Other', component: () => import('../views/OtherPage.vue'), meta: { title: '其他' } },
+  {
+    path: '/download',
+    name: 'Download',
+    component: () => import('../views/DownloadPromptPage.vue'),
+    meta: { title: '下载指易融' },
+  },
 ]
 
 const router = createRouter({
