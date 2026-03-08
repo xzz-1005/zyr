@@ -18,9 +18,11 @@ export function homePage(data, config) {
 
 /**
  * H5 APK 信息
+ * @param {object} data - 请求体
+ * @param {object} [config] - axios 配置，可传 headers（如 Authorization）
  */
-export function apkInfo(data) {
-  return request.post('/h5/apk_info', data)
+export function apkInfo(data, config) {
+  return request.post('/h5/apk_info', data, config)
 }
 
 /**

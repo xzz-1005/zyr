@@ -157,6 +157,11 @@ const initLogin = async () => {
     const res = await unionLogin(unionLoginParams)
     loginToken.value = res?.data?.loginToken
     if (loginToken.value) {
+      try {
+        localStorage.setItem('loginToken', loginToken.value)
+      } catch (e) {
+        // ignore
+      }
       const homeRes = await homePage(
         { productCode: 'PRODUCT1' },
         { headers: { Authorization: loginToken.value } }

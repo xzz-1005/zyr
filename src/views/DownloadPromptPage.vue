@@ -1,12 +1,40 @@
 <script setup>
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { apkInfo } from '../api/union'
+import { isIOS, isHarmony } from '../utils/device'
 import logoImg from '../assets/images/logo.png'
 
 const router = useRouter()
+/** 当前设备对应的 APK 下载链接，由 apk_info 接口按设备类型解析 */
+const apkDownloadUrl = ref('')
+
+function getApkInfoByDevice(data) {
+  if (!data) return null
+  if (isIOS()) return data.iosApkInfo
+  if (isHarmony()) return data.harmonyApkInfo
+  return data.androidApkInfo
+}
+
+onMounted(async () => {
+  const token = localStorage.getItem('loginToken')
+  const config = token ? { headers: { Authorization: token } } : undefined
+  try {
+    const res = await apkInfo({ productCode: 'PRODUCT1' }, config)
+    const data = res?.data ?? res
+    const info = getApkInfoByDevice(data)
+    if (info?.apkDownloadUrl) {
+      apkDownloadUrl.value = info.apkDownloadUrl
+    }
+  } catch (err) {
+    console.error('apk_info error', err)
+  }
+})
 
 const onDownload = () => {
-  // 跳转应用商店或下载链接，按实际地址替换
-  // window.location.href = 'https://xxx'
+  if (apkDownloadUrl.value) {
+    window.location.href = apkDownloadUrl.value
+  }
 }
 
 const onOpen = () => {

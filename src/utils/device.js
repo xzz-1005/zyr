@@ -8,3 +8,10 @@ export function isIOS() {
   if (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) return true
   return false
 }
+
+/**
+ * 是否为鸿蒙设备
+ */
+export function isHarmony() {
+  return /HarmonyOS|HMSCore/.test(navigator.userAgent)
+}
