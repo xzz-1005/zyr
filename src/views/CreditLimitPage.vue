@@ -44,6 +44,8 @@ const assetPopupStep1BtnDisabled = computed(() => {
   return assets.value.length === 0
 })
 const cityText = ref('')
+/** 已选常驻城市对应的接口参数，用于 handleViewLimit 时一并提交 */
+const residentInfoPayload = ref(null)
 const showAreaPicker = ref(false)
 const areaRef = ref(null)
 /** 仅当因未选城市点击主按钮而打开弹层时为 true，用于显示「跳过」和「保存并提交」 */
@@ -114,8 +116,9 @@ const onAreaConfirm = ({ selectedOptions }) => {
       provinceName: province.text,
       cityCode: city.value,
       cityName: city.text,
-      productCode: 'ZYR',
+      productCode: 'PRODUCT1',
     }
+    residentInfoPayload.value = payload
     const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
     saveResidentInfo(payload, config).catch((err) => console.error('save_resident_info error', err))
   }
@@ -140,6 +143,7 @@ const onSaveAndSubmit = () => {
         cityName: city.text,
         productCode: 'PRODUCT1',
       }
+      residentInfoPayload.value = payload
       const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
       saveResidentInfo(payload, config).catch((err) => console.error('save_resident_info error', err))
     }
@@ -226,6 +230,9 @@ const handleViewLimit = () => {
   const payload = buildSaveAssetPayload()
   const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
   saveAssetInfo(payload, config).catch((err) => console.error('save_asset_info error', err))
+  if (residentInfoPayload.value) {
+    saveResidentInfo(residentInfoPayload.value, config).catch((err) => console.error('save_resident_info error', err))
+  }
 
   if (needAssetInfo.value && !hasValidAssetSelection()) {
     assetPopupStep.value = 1
@@ -269,9 +276,23 @@ const onSkipAssetStep2 = () => {
 }
 
 const onSaveAndSubmitAssetPopup = () => {
-  const options = assetPopupAreaRef.value?.getSelectedOptions?.()
-  if (options?.length) {
+  const options = assetPopupAreaRef.value?.getSelectedOptions?.() ?? []
+  if (options.length) {
     cityText.value = options.map((o) => o.text).join(' ')
+    const province = options[0]
+    const city = options[1]
+    if (province && city) {
+      const payload = {
+        provinceCode: province.value,
+        provinceName: province.text,
+        cityCode: city.value,
+        cityName: city.text,
+        productCode: 'PRODUCT1',
+      }
+      residentInfoPayload.value = payload
+      const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
+      saveResidentInfo(payload, config).catch((err) => console.error('save_resident_info error', err))
+    }
   }
   showAssetPopup.value = false
   router.push('/download')
