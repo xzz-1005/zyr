@@ -25,14 +25,18 @@ export function apkInfo(data) {
 
 /**
  * H5 保存资产信息
+ * @param {object} data - 请求体
+ * @param {object} [config] - axios 配置，可传 headers（如 Authorization）
  */
-export function saveAssetInfo(data) {
-  return request.post('/h5/save_asset_info', data)
+export function saveAssetInfo(data, config) {
+  return request.post('/h5/save_asset_info', data, config)
 }
 
 /**
  * H5 保存常驻信息
+ * @param {object} data - 请求体（provinceCode, provinceName, cityCode, cityName, productCode）
+ * @param {object} [config] - axios 配置，可传 headers（如 Authorization）
  */
-export function saveResidentInfo(data) {
-  return request.post('/h5/save_resident_info', data)
+export function saveResidentInfo(data, config) {
+  return request.post('/h5/save_resident_info', data, config)
 }
