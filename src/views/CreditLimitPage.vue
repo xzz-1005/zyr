@@ -1,8 +1,9 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+// import { useTrack } from '../composables/useTrack' // TODO: 添加埋点
 import { areaList } from '@vant/area-data'
-import { unionLogin } from '../api/union'
+import { unionLogin, homePage } from '../api/union'
 import homeBg from '../assets/images/home-bg.png'
 
 const router = useRouter()
@@ -15,26 +16,72 @@ const assetOptions = [
   { label: '有商业险', value: 'insurance' },
   { label: '以上均不是', value: 'none' },
 ]
+/** 前五项（有车/有房/有企业/有公积金/有商业险）的 value；仅当五项全选或选「以上均不是」时视为资产已选，否则点击提交会再弹出资产弹框 */
+const FIVE_ASSET_VALUES = ['car', 'house', 'business', 'fund', 'insurance']
+
+/** 某一项是否已“作答”：选了“有”或“无” */
+const isAssetAnswered = (v) => assets.value.includes(v) || assets.value.includes('no_' + v)
+
+const hasValidAssetSelection = () => {
+  if (assets.value.includes('none')) return true
+  return FIVE_ASSET_VALUES.every((v) => isAssetAnswered(v))
+}
+
+/** 第一步展示模式：打开弹框时确定，不随选择变化。'all'=六项全部，'single'=仅未选那一项的有/无 */
+const assetPopupStep1Mode = ref('all')
+/** 第一步为 single 时，未选中的那一项 option（打开时确定） */
+const assetPopupStep1SingleOption = ref(null)
+
+/** 第一步「保存并下一步」是否禁用：有/无模式需选其一，普通模式需至少选一项 */
+const assetPopupStep1BtnDisabled = computed(() => {
+  if (assetPopupStep1Mode.value === 'single' && assetPopupStep1SingleOption.value) {
+    const opt = assetPopupStep1SingleOption.value
+    return !assets.value.includes(opt.value) && !assets.value.includes('no_' + opt.value)
+  }
+  return assets.value.length === 0
+})
 const cityText = ref('')
 const showAreaPicker = ref(false)
 const areaRef = ref(null)
 /** 仅当因未选城市点击主按钮而打开弹层时为 true，用于显示「跳过」和「保存并提交」 */
 const areaPopupFromCta = ref(false)
+/** 选择资产情况弹层（未选资产/未选城市时点击主按钮弹出），内部分两步 */
+const showAssetPopup = ref(false)
+/** 弹框内步骤：1=资产选择，2=城市选择 */
+const assetPopupStep = ref(1)
+/** 本次打开弹框是否会经历两步（从第一步进入则为 true，直接第二步则为 false，用于是否展示 dots） */
+const assetPopupHasTwoSteps = ref(false)
+const assetPopupAreaRef = ref(null)
+/** 第二步是否有选中的省/市（用于「保存并提交」是否 disabled） */
+const step2HasSelection = ref(false)
+const estimateAmount = ref(200000)
+
+const formatNumber = (num) => {
+  return num.toLocaleString()
+}
 
 const toggleAsset = (value) => {
   const isNone = value === 'none'
-  const idx = assets.value.indexOf(value)
   if (isNone) {
+    const idx = assets.value.indexOf(value)
     assets.value = idx === -1 ? ['none'] : []
-  } else {
-    let next = assets.value.filter((v) => v !== 'none')
-    if (idx === -1) {
-      next = [...next, value]
-    } else {
-      next = next.filter((v) => v !== value)
-    }
-    assets.value = next
+    return
   }
+  const isNo = value.startsWith('no_')
+  const base = isNo ? value.slice(3) : value
+  let next = assets.value.filter((v) => v !== 'none')
+  if (isNo) {
+    next = next.filter((v) => v !== base)
+    const idx = next.indexOf(value)
+    if (idx === -1) next.push(value)
+    else next = next.filter((v) => v !== value)
+  } else {
+    next = next.filter((v) => v !== 'no_' + base)
+    const idx = next.indexOf(value)
+    if (idx === -1) next.push(value)
+    else next = next.filter((v) => v !== value)
+  }
+  assets.value = next
 }
 
 const showCityPicker = () => {
@@ -62,28 +109,97 @@ const onSaveAndSubmit = () => {
 
 const unionLoginParams = {
   productCode: 'PRODUCT1',
-  encryptParam: '16235487455',
+  encryptParam: '16235487455', // TODO: 参数从路由获取
+}
+
+const initLogin = async () => {
+  try {
+    const res = await unionLogin(unionLoginParams)
+    const loginToken = res?.data?.loginToken
+    if (loginToken) {
+      const homeRes = await homePage(
+        { productCode: 'PRODUCT1' },
+        { headers: { Authorization: loginToken } }
+      )
+      console.log('home_page success', homeRes)
+    }
+  } catch (err) {
+    console.error('union_login or home_page error', err)
+  }
+}
+initLogin()
+
+const openAssetPopupStep1 = () => {
+  const unselected = FIVE_ASSET_VALUES.filter((v) => !isAssetAnswered(v))
+  if (unselected.length === 1) {
+    assetPopupStep1Mode.value = 'single'
+    assetPopupStep1SingleOption.value = assetOptions.find((o) => o.value === unselected[0]) ?? null
+  } else {
+    assetPopupStep1Mode.value = 'all'
+    assetPopupStep1SingleOption.value = null
+  }
 }
 
 const handleViewLimit = () => {
-  if (!cityText.value) {
-    areaPopupFromCta.value = true
-    showAreaPicker.value = true
+  if (!hasValidAssetSelection()) {
+    assetPopupStep.value = 1
+    assetPopupHasTwoSteps.value = true
+    openAssetPopupStep1()
+    showAssetPopup.value = true
     return
   }
-  // 前置逻辑：埋点、提交表单等
+  if (!cityText.value) {
+    assetPopupStep.value = 2
+    assetPopupHasTwoSteps.value = false
+    showAssetPopup.value = true
+    return
+  }
   router.push('/download')
 }
 
-onMounted(() => {
-  unionLogin(unionLoginParams)
-    .then((res) => {
-      console.log('union_login success', res)
-    })
-    .catch((err) => {
-      console.error('union_login error', err)
-    })
+const goAfterAssetPopup = () => {
+  if (!cityText.value) {
+    assetPopupStep.value = 2
+  } else {
+    showAssetPopup.value = false
+    router.push('/download')
+  }
+}
+
+const onSkipAsset = () => {
+  goAfterAssetPopup()
+}
+
+const onSaveAndNextAsset = () => {
+  goAfterAssetPopup()
+}
+
+const onSkipAssetStep2 = () => {
+  showAssetPopup.value = false
+  router.push('/download')
+}
+
+const onSaveAndSubmitAssetPopup = () => {
+  const options = assetPopupAreaRef.value?.getSelectedOptions?.()
+  if (options?.length) {
+    cityText.value = options.map((o) => o.text).join(' ')
+  }
+  showAssetPopup.value = false
+  router.push('/download')
+}
+
+const onStep2AreaChange = ({ selectedOptions }) => {
+  step2HasSelection.value = selectedOptions?.length > 0
+}
+
+watch([showAssetPopup, assetPopupStep], ([show]) => {
+  step2HasSelection.value = false
+  if (!show) {
+    assetPopupStep1Mode.value = 'all'
+    assetPopupStep1SingleOption.value = null
+  }
 })
+
 </script>
 
 <template>
@@ -103,7 +219,7 @@ onMounted(() => {
         </div>
         <div class="estimate-title">预估最高综合额度(元)</div>
         <div class="estimate-sub">（实际以最终审批结果为准）</div>
-        <div class="estimate-amount">200,000</div>
+        <div class="estimate-amount">{{ formatNumber(estimateAmount) }}</div>
         <div class="estimate-desc">
           年化综合融资成本（单利）5%-24% 借1万用1年日均息费0.8元起
         </div>
@@ -169,6 +285,93 @@ onMounted(() => {
       <van-button v-if="areaPopupFromCta" type="primary" block round class="area-submit-btn" @click="onSaveAndSubmit">
         保存并提交
       </van-button>
+    </van-popup>
+
+    <!-- 选择资产/城市 两步弹层：第一步资产，第二步城市 -->
+    <van-popup v-model:show="showAssetPopup" position="bottom" round class="asset-popup">
+      <div class="asset-popup__header">
+        <span class="asset-popup__close" @click="showAssetPopup = false">×</span>
+        <span class="asset-popup__title">{{ assetPopupStep === 1 ? '选择资产情况' : '选择常驻省份' }}</span>
+        <span class="asset-popup__right">
+          <span v-if="assetPopupStep === 1" class="asset-popup__skip" @click="onSkipAsset">跳过</span>
+        </span>
+      </div>
+      <!-- 第一步：资产选择 -->
+      <template v-if="assetPopupStep === 1">
+        <div class="asset-popup__content">
+          <div class="asset-popup__body">
+            <div class="asset-popup__tags" :class="{ 'asset-popup__tags--single': assetPopupStep1Mode === 'single' }">
+              <template v-if="assetPopupStep1Mode === 'single' && assetPopupStep1SingleOption">
+                <van-tag
+                  :type="assets.includes(assetPopupStep1SingleOption.value) ? 'primary' : 'default'"
+                  class="asset-tag"
+                  :class="{ 'asset-tag--selected': assets.includes(assetPopupStep1SingleOption.value) }"
+                  @click="toggleAsset(assetPopupStep1SingleOption.value)"
+                >
+                  {{ assetPopupStep1SingleOption.label }}
+                </van-tag>
+                <van-tag
+                  :type="assets.includes('no_' + assetPopupStep1SingleOption.value) ? 'primary' : 'default'"
+                  class="asset-tag"
+                  :class="{ 'asset-tag--selected': assets.includes('no_' + assetPopupStep1SingleOption.value) }"
+                  @click="toggleAsset('no_' + assetPopupStep1SingleOption.value)"
+                >
+                  {{ '无' + assetPopupStep1SingleOption.label.slice(1) }}
+                </van-tag>
+              </template>
+              <template v-else>
+                <van-tag
+                  v-for="opt in assetOptions"
+                  :key="opt.value"
+                  :type="assets.includes(opt.value) ? 'primary' : 'default'"
+                  class="asset-tag"
+                  :class="{ 'asset-tag--selected': assets.includes(opt.value) }"
+                  @click="toggleAsset(opt.value)"
+                >
+                  {{ opt.label }}
+                </van-tag>
+              </template>
+            </div>
+          </div>
+        </div>
+        <van-button
+          type="primary"
+          block
+          round
+          class="asset-popup__btn"
+          :disabled="assetPopupStep1BtnDisabled"
+          @click="onSaveAndNextAsset"
+        >
+          保存并下一步
+        </van-button>
+      </template>
+      <!-- 第二步：城市选择 -->
+      <template v-else>
+        <div class="asset-popup__content">
+          <div class="asset-popup__area-wrap">
+            <van-area
+              ref="assetPopupAreaRef"
+              :area-list="areaList"
+              :columns-num="2"
+              @change="onStep2AreaChange"
+            />
+          </div>
+        </div>
+        <van-button
+          type="primary"
+          block
+          round
+          class="asset-popup__btn"
+          :disabled="!step2HasSelection"
+          @click="onSaveAndSubmitAssetPopup"
+        >
+          保存并提交
+        </van-button>
+      </template>
+      <div v-if="assetPopupHasTwoSteps" class="asset-popup__dots">
+        <span class="asset-popup__dot" :class="{ 'asset-popup__dot--active': assetPopupStep === 1 }" />
+        <span class="asset-popup__dot" :class="{ 'asset-popup__dot--active': assetPopupStep === 2 }" />
+      </div>
     </van-popup>
   </div>
 </template>
@@ -360,5 +563,125 @@ onMounted(() => {
   height: 44px;
   font-size: 15px;
   width: calc(100% - 32px);
+}
+
+/* 选择资产情况弹层 */
+.asset-popup {
+  padding: 0 0 24px;
+}
+
+.asset-popup__header {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
+  height: 48px;
+  padding: 0 16px;
+  border-bottom: 1px solid #ebedf0;
+}
+
+.asset-popup__close {
+  font-size: 24px;
+  color: #969799;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.asset-popup__title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #323233;
+  text-align: center;
+  justify-self: center;
+}
+
+.asset-popup__right {
+  text-align: right;
+}
+
+.asset-popup__skip {
+  font-size: 14px;
+  color: #1989fa;
+  cursor: pointer;
+}
+
+.asset-popup__content {
+  // height: 300px;
+  // overflow: auto;
+}
+
+.asset-popup__body {
+  padding: 20px 16px;
+}
+
+.asset-popup__tags {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px 12px;
+}
+
+.asset-popup__tags--single {
+  grid-template-columns: 1fr 1fr;
+}
+
+.asset-popup__tags :deep(.van-tag) {
+  cursor: pointer;
+  height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+  margin: 0;
+  border: none;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.asset-popup__tags :deep(.van-tag.van-tag--default) {
+  background: #f7f8fa;
+  color: #646566;
+}
+
+.asset-popup__tags :deep(.van-tag.asset-tag--selected),
+.asset-popup__tags :deep(.van-tag.van-tag--primary) {
+  background: #ecf9ff;
+  color: #1989fa;
+}
+
+.asset-popup__btn {
+  width: calc(100% - 32px);
+  margin: 0 16px;
+  height: 44px;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+
+.asset-popup__area-wrap {
+  height: 100%;
+  padding: 0 16px 8px;
+  min-height: 260px;
+}
+
+.asset-popup__area-wrap :deep(.van-picker__toolbar) {
+  display: none;
+}
+
+.asset-popup__dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.asset-popup__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #dcdee0;
+}
+
+.asset-popup__dot--active {
+  background: #1989fa;
 }
 </style>
