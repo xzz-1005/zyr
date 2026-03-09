@@ -20,7 +20,7 @@ onMounted(async () => {
   const token = localStorage.getItem('loginToken')
   const config = token ? { headers: { Authorization: token } } : undefined
   try {
-    const res = await apkInfo({ productCode: 'PRODUCT1' }, config)
+    const res = await apkInfo({}, config)
     const data = res?.data ?? res
     const info = getApkInfoByDevice(data)
     if (info?.apkDownloadUrl) {

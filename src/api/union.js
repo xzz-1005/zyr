@@ -1,10 +1,12 @@
 import request from '../utils/request'
 
+const productCode = 'ZYR'
+
 /**
  * H5 联合登录
  */
-export function unionLogin(data) {
-  return request.post('/h5/union_login', data)
+export function unionLogin(data = {}) {
+  return request.post('/h5/union_login', { productCode, ...data })
 }
 
 /**
@@ -12,8 +14,8 @@ export function unionLogin(data) {
  * @param {object} data - 请求体
  * @param {object} [config] - axios 配置，可传 headers（如 Authorization）
  */
-export function homePage(data, config) {
-  return request.post('/h5/home_page', data, config)
+export function homePage(data = {}, config) {
+  return request.post('/h5/home_page', { productCode, ...data }, config)
 }
 
 /**
@@ -21,8 +23,8 @@ export function homePage(data, config) {
  * @param {object} data - 请求体
  * @param {object} [config] - axios 配置，可传 headers（如 Authorization）
  */
-export function apkInfo(data, config) {
-  return request.post('/h5/apk_info', data, config)
+export function apkInfo(data = {}, config) {
+  return request.post('/h5/apk_info', { productCode, ...data }, config)
 }
 
 /**
@@ -30,8 +32,8 @@ export function apkInfo(data, config) {
  * @param {object} data - 请求体
  * @param {object} [config] - axios 配置，可传 headers（如 Authorization）
  */
-export function saveAssetInfo(data, config) {
-  return request.post('/h5/save_asset_info', data, config)
+export function saveAssetInfo(data = {}, config) {
+  return request.post('/h5/save_asset_info', { productCode, ...data }, config)
 }
 
 /**
@@ -39,6 +41,6 @@ export function saveAssetInfo(data, config) {
  * @param {object} data - 请求体（provinceCode, provinceName, cityCode, cityName, productCode）
  * @param {object} [config] - axios 配置，可传 headers（如 Authorization）
  */
-export function saveResidentInfo(data, config) {
-  return request.post('/h5/save_resident_info', data, config)
+export function saveResidentInfo(data = {}, config) {
+  return request.post('/h5/save_resident_info', { productCode, ...data }, config)
 }

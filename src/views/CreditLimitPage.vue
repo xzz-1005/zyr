@@ -1,10 +1,11 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-// import { useTrack } from '../composables/useTrack' // TODO: 添加埋点
-import { areaList } from '@vant/area-data'
+import { useTrack } from '../composables/useTrack'
 import { unionLogin, homePage, saveAssetInfo, saveResidentInfo } from '../api/union'
+import { getResidentCity } from '../api/common'
 import homeBg from '../assets/images/home-bg.png'
+import { formatAreaList } from '../utils/common'
 
 const router = useRouter()
 const assets = ref([])
@@ -51,9 +52,9 @@ const areaRef = ref(null)
 /** 仅当因未选城市点击主按钮而打开弹层时为 true，用于显示「跳过」和「保存并提交」 */
 const areaPopupFromCta = ref(false)
 /** 选择资产情况弹层（未选资产/未选城市时点击主按钮弹出），内部分两步 */
-const showAssetPopup = ref(false)
+const showPopup = ref(false)
 /** 弹框内步骤：1=资产选择，2=城市选择 */
-const assetPopupStep = ref(1)
+const popupStep = ref(1)
 /** 本次打开弹框是否会经历两步（从第一步进入则为 true，直接第二步则为 false，用于是否展示 dots） */
 const assetPopupHasTwoSteps = ref(false)
 const assetPopupAreaRef = ref(null)
@@ -70,6 +71,20 @@ const estimateTitle = ref('预估最高综合可借（元）')
 const estimateTips = ref('年化综合资金成本（单利）5%～24%，借1万用1年日均息费0.8元起')
 /** 是否展示常驻城市，来自接口 needResidentInfo */
 const needResidentInfo = ref(false)
+
+const areaList = ref({
+  province_list: {},
+  city_list: {},
+})
+
+onMounted(async () => {
+  try {
+    const res = await getResidentCity()
+    areaList.value = formatAreaList(res?.data?.provinceResponseVos || [])
+  } catch (err) {
+    console.error('get_resident_city error', err)
+  }
+})
 
 const formatNumber = (num) => {
   return num.toLocaleString()
@@ -108,20 +123,20 @@ const onAreaConfirm = ({ selectedOptions }) => {
   const texts = selectedOptions.map((o) => o.text)
   cityText.value = texts.join(' ')
   showAreaPicker.value = false
-  const province = selectedOptions[0]
-  const city = selectedOptions[1]
-  if (province && city) {
-    const payload = {
-      provinceCode: province.value,
-      provinceName: province.text,
-      cityCode: city.value,
-      cityName: city.text,
-      productCode: 'PRODUCT1',
-    }
-    residentInfoPayload.value = payload
-    const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
-    saveResidentInfo(payload, config).catch((err) => console.error('save_resident_info error', err))
-  }
+  // 一期不直接保存省份
+  // const province = selectedOptions[0]
+  // const city = selectedOptions[1]
+  // if (province && city) {
+  //   const payload = {
+  //     provinceCode: province.value,
+  //     provinceName: province.text,
+  //     cityCode: city.value,
+  //     cityName: city.text,
+  //   }
+  //   residentInfoPayload.value = payload
+  //   const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
+  //   saveResidentInfo(payload, config).catch((err) => console.error('save_resident_info error', err))
+  // }
 }
 
 const onSkipArea = () => {
@@ -141,7 +156,6 @@ const onSaveAndSubmit = () => {
         provinceName: province.text,
         cityCode: city.value,
         cityName: city.text,
-        productCode: 'PRODUCT1',
       }
       residentInfoPayload.value = payload
       const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
@@ -152,14 +166,26 @@ const onSaveAndSubmit = () => {
 }
 
 const unionLoginParams = {
-  productCode: 'PRODUCT1',
-  encryptParam: '16235487455', // TODO: 参数从路由获取
+  encryptParam: '14597099440', // TODO: 参数从路由获取
 }
+
+const { track } = useTrack()
 
 const initLogin = async () => {
   try {
     const res = await unionLogin(unionLoginParams)
     loginToken.value = res?.data?.loginToken
+    track({
+      productCode: 'ZYR',
+      eventType: 'result',
+      sceneType: 'login',
+      resultType: 'suc',
+      dataInfoList: [
+        {key: 'message', message: loginToken.value ? '登录成功(含注册)' : '登录失败'},
+        // {key: 'message2', message: '采量联登'},
+        {key: 'message3', message: res?.data?.firstLogin ? '注册并登录' : '仅登录'},
+      ],
+    })
     if (loginToken.value) {
       try {
         localStorage.setItem('loginToken', loginToken.value)
@@ -167,7 +193,7 @@ const initLogin = async () => {
         // ignore
       }
       const homeRes = await homePage(
-        { productCode: 'PRODUCT1' },
+        {},
         { headers: { Authorization: loginToken.value } }
       )
       const homeQuota = homeRes?.data?.homeQuotaGrid
@@ -190,9 +216,11 @@ const initLogin = async () => {
       }
       if (homeRes?.data?.increaseQuotaGrid.needAssetInfo != null) {
         needAssetInfo.value = !!homeRes.data.increaseQuotaGrid.needAssetInfo
+        // needAssetInfo.value = true // TODO: 测试用
       }
       if (homeRes?.data?.increaseQuotaGrid.needResidentInfo != null) {
         needResidentInfo.value = !!homeRes.data.increaseQuotaGrid.needResidentInfo
+        // needResidentInfo.value = true // TODO: 测试用
       }
     }
   } catch (err) {
@@ -219,7 +247,7 @@ const buildSaveAssetPayload = () => {
     else if (assets.value.includes('no_' + opt.value)) haveFlag = false
     return { assetCode: opt.value.toUpperCase(), haveFlag }
   })
-  return { productCode: 'PRODUCT1', assetItems }
+  return { assetItems }
 }
 
 const handleViewLimit = () => {
@@ -230,21 +258,23 @@ const handleViewLimit = () => {
   const payload = buildSaveAssetPayload()
   const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
   saveAssetInfo(payload, config).catch((err) => console.error('save_asset_info error', err))
+  console.log('residentInfoPayload=====', residentInfoPayload.value)
   if (residentInfoPayload.value) {
     saveResidentInfo(residentInfoPayload.value, config).catch((err) => console.error('save_resident_info error', err))
   }
 
   if (needAssetInfo.value && !hasValidAssetSelection()) {
-    assetPopupStep.value = 1
-    assetPopupHasTwoSteps.value = needResidentInfo.value
+    console.log('needAssetInfo=====', cityText.value)
+    popupStep.value = 1
+    assetPopupHasTwoSteps.value = needResidentInfo.value && !cityText.value
     openAssetPopupStep1()
-    showAssetPopup.value = true
+    showPopup.value = true
     return
   }
   if (needResidentInfo.value && !cityText.value) {
-    assetPopupStep.value = 2
+    popupStep.value = 2
     assetPopupHasTwoSteps.value = false
-    showAssetPopup.value = true
+    showPopup.value = true
     return
   }
   router.push('/download')
@@ -252,9 +282,9 @@ const handleViewLimit = () => {
 
 const goAfterAssetPopup = () => {
   if (needResidentInfo.value && !cityText.value) {
-    assetPopupStep.value = 2
+    popupStep.value = 2
   } else {
-    showAssetPopup.value = false
+    showPopup.value = false
     router.push('/download')
   }
 }
@@ -267,11 +297,15 @@ const onSaveAndNextAsset = () => {
   const payload = buildSaveAssetPayload()
   const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
   saveAssetInfo(payload, config).catch((err) => console.error('save_asset_info error', err))
+  if (needResidentInfo.value && cityText.value) {
+    onSaveAndSubmitAssetPopup()
+    return
+  }
   goAfterAssetPopup()
 }
 
 const onSkipAssetStep2 = () => {
-  showAssetPopup.value = false
+  showPopup.value = false
   router.push('/download')
 }
 
@@ -287,14 +321,13 @@ const onSaveAndSubmitAssetPopup = () => {
         provinceName: province.text,
         cityCode: city.value,
         cityName: city.text,
-        productCode: 'PRODUCT1',
       }
       residentInfoPayload.value = payload
       const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
       saveResidentInfo(payload, config).catch((err) => console.error('save_resident_info error', err))
     }
   }
-  showAssetPopup.value = false
+  showPopup.value = false
   router.push('/download')
 }
 
@@ -302,7 +335,7 @@ const onStep2AreaChange = ({ selectedOptions }) => {
   step2HasSelection.value = selectedOptions?.length > 0
 }
 
-watch([showAssetPopup, assetPopupStep], ([show]) => {
+watch([showPopup, popupStep], ([show]) => {
   step2HasSelection.value = false
   if (!show) {
     assetPopupStep1Mode.value = 'all'
@@ -400,16 +433,16 @@ watch([showAssetPopup, assetPopupStep], ([show]) => {
     </van-popup>
 
     <!-- 选择资产/城市 两步弹层：第一步资产，第二步城市 -->
-    <van-popup v-model:show="showAssetPopup" position="bottom" round class="asset-popup">
+    <van-popup v-model:show="showPopup" position="bottom" round class="asset-popup">
       <div class="asset-popup__header">
-        <span class="asset-popup__close" @click="showAssetPopup = false">×</span>
-        <span class="asset-popup__title">{{ assetPopupStep === 1 ? '选择资产情况' : '选择常驻省份' }}</span>
+        <span class="asset-popup__close" @click="showPopup = false">×</span>
+        <span class="asset-popup__title">{{ popupStep === 1 ? '选择资产情况' : '选择常驻省份' }}</span>
         <span class="asset-popup__right">
-          <span v-if="assetPopupStep === 1 && needResidentInfo" class="asset-popup__skip" @click="onSkipAsset">跳过</span>
+          <span v-if="popupStep === 1 && needResidentInfo && !cityText" class="asset-popup__skip" @click="onSkipAsset">跳过</span>
         </span>
       </div>
       <!-- 第一步：资产选择 -->
-      <template v-if="assetPopupStep === 1">
+      <template v-if="popupStep === 1">
         <div class="asset-popup__content">
           <div class="asset-popup__body">
             <div class="asset-popup__tags" :class="{ 'asset-popup__tags--single': assetPopupStep1Mode === 'single' }">
@@ -454,7 +487,7 @@ watch([showAssetPopup, assetPopupStep], ([show]) => {
           :disabled="assetPopupStep1BtnDisabled"
           @click="onSaveAndNextAsset"
         >
-          {{ needResidentInfo ? '保存并下一步' : '保存并提交' }}
+          {{ needResidentInfo && !cityText ? '保存并下一步' : '保存并提交' }}
         </van-button>
       </template>
       <!-- 第二步：城市选择 -->
@@ -480,9 +513,9 @@ watch([showAssetPopup, assetPopupStep], ([show]) => {
           保存并提交
         </van-button>
       </template>
-      <div v-if="needAssetInfo && needResidentInfo" class="asset-popup__dots">
-        <span class="asset-popup__dot" :class="{ 'asset-popup__dot--active': assetPopupStep === 1 }" />
-        <span class="asset-popup__dot" :class="{ 'asset-popup__dot--active': assetPopupStep === 2 }" />
+      <div v-if="needAssetInfo && (needResidentInfo && !cityText)" class="asset-popup__dots">
+        <span class="asset-popup__dot" :class="{ 'asset-popup__dot--active': popupStep === 1 }" />
+        <span class="asset-popup__dot" :class="{ 'asset-popup__dot--active': popupStep === 2 }" />
       </div>
     </van-popup>
   </div>

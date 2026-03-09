@@ -1,27 +1,31 @@
 import { useRouter } from 'vue-router'
+import { trackEvent } from '../api/common'
 
 /**
  * 埋点 composable
- * @returns {{ track: (eventName: string, params?: object) => void }}
+ * @returns {{ track: (eventInfo: object, params?: object) => void }}
  */
 export function useTrack() {
   const router = useRouter()
 
   /**
    * 埋点上报
-   * @param {string} eventName - 事件名称
+   * @param {object} eventInfo - 事件名称
    * @param {object} [params] - 附加参数
    */
-  const track = (eventName, params = {}) => {
+  const track = (eventInfo, params = {}) => {
     const payload = {
-      event: eventName,
-      page: router.currentRoute.value?.path ?? '',
-      timestamp: Date.now(),
+      productCode: eventInfo.productCode,
+      eventType: eventInfo.eventType,
+      sceneType: eventInfo.sceneType,
+      resultType: eventInfo.resultType,
+      dataInfoList: eventInfo.dataInfoList || [{key: '', message:''}],
+      // page: router.currentRoute.value?.path ?? '',
+      // timestamp: Date.now(),
       ...params,
     }
-    // TODO: 对接实际埋点接口或第三方 SDK（如神策、友盟等）
     console.log('[track]', payload)
-    // 示例：request.post('/api/track', payload)
+    trackEvent(payload).catch((err) => console.error('track_event error', err))
   }
 
   return { track }
