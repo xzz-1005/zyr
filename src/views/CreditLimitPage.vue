@@ -2,10 +2,10 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTrack } from '../composables/useTrack'
-import { unionLogin, homePage, saveAssetInfo, saveResidentInfo } from '../api/union'
-import { getResidentCity } from '../api/common'
+import { unionLogin, homePage, saveAssetInfo, saveResidentInfo } from '@/api/union'
+import { getResidentCity } from '@/api/common'
 import homeBg from '../assets/images/home-bg.png'
-import { formatAreaList } from '../utils/common'
+import { formatAreaList } from '@/utils/common'
 
 const router = useRouter()
 const assets = ref([])
@@ -166,7 +166,7 @@ const onSaveAndSubmit = () => {
 }
 
 const unionLoginParams = {
-  encryptParam: '14597099440', // TODO: 参数从路由获取
+  encryptParam: '18609879045', // TODO: 参数从路由获取
 }
 
 const { track } = useTrack()

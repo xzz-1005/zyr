@@ -1,8 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { apkInfo } from '../api/union'
-import { isIOS, isHarmony } from '../utils/device'
+import { apkInfo } from '@/api/union'
+import { isIOS, isHarmony } from '@/utils/device'
 import logoImg from '../assets/images/logo.png'
 
 const router = useRouter()

@@ -1,5 +1,5 @@
 import { useRouter } from 'vue-router'
-import { trackEvent } from '../api/common'
+import { trackEvent } from '@/api/common'
 
 /**
  * 埋点 composable
