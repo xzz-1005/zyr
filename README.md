@@ -5,6 +5,7 @@
 ## 开发
 
 ```bash
+node 16
 npm install
 npm run dev
 ```
