@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { apkInfo } from '@/api/union'
 import { isIOS, isHarmony } from '@/utils/device'
 import logoImg from '../assets/images/logo.png'
+import downloadBg from '../assets/images/download-bg.png'
 
 const router = useRouter()
 /** 当前设备对应的 APK 下载链接，由 apk_info 接口按设备类型解析 */
@@ -44,7 +45,7 @@ const onOpen = () => {
 </script>
 
 <template>
-  <div class="download-page">
+  <div class="download-page" :style="{ backgroundImage: `url(${downloadBg})` }">
     <div class="download-page__content">
       <div class="app-icon-wrap">
         <img :src="logoImg" alt="指易融" class="app-icon" />
@@ -63,8 +64,9 @@ const onOpen = () => {
 <style lang="scss" scoped>
 .download-page {
   min-height: 100vh;
-  // todo: 背景图
-  background: linear-gradient(180deg, #e8f4ff 0%, #d6ebff 50%, #e3f1ff 100%);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center;
   position: relative;
   overflow: hidden;
 }

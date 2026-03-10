@@ -6,8 +6,10 @@ import { unionLogin, homePage, saveAssetInfo, saveResidentInfo } from '@/api/uni
 import { getResidentCity } from '@/api/common'
 import homeBg from '../assets/images/home-bg.png'
 import { formatAreaList } from '@/utils/common'
+import { useRoute } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
 const assets = ref([])
 /** 资产选项，来自接口 increaseQuotaGrid.assetItemList，未返回时用默认 */
 const assetOptions = ref([
@@ -71,6 +73,7 @@ const estimateTitle = ref('预估最高综合可借（元）')
 const estimateTips = ref('年化综合资金成本（单利）5%～24%，借1万用1年日均息费0.8元起')
 /** 是否展示常驻城市，来自接口 needResidentInfo */
 const needResidentInfo = ref(false)
+const loading = ref(false)
 
 const areaList = ref({
   province_list: {},
@@ -140,6 +143,7 @@ const onAreaConfirm = ({ selectedOptions }) => {
 }
 
 const onSkipArea = () => {
+  //TODO 无此场景
   showAreaPicker.value = false;
   router.push('/download')
 }
@@ -166,13 +170,15 @@ const onSaveAndSubmit = () => {
 }
 
 const unionLoginParams = {
-  encryptParam: '18609879045', // TODO: 参数从路由获取
+  encryptParam: route.query.encryptParam || '',
 }
+console.log('unionLoginParams=====', unionLoginParams, window.location.href)
 
 const { track } = useTrack()
 
 const initLogin = async () => {
   try {
+    loading.value = true
     const res = await unionLogin(unionLoginParams)
     loginToken.value = res?.data?.loginToken
     track({
@@ -184,6 +190,7 @@ const initLogin = async () => {
         {key: 'message', message: loginToken.value ? '登录成功(含注册)' : '登录失败'},
         // {key: 'message2', message: '采量联登'},
         {key: 'message3', message: res?.data?.firstLogin ? '注册并登录' : '仅登录'},
+        {key: 'info5', message: window.location.href},
       ],
     })
     if (loginToken.value) {
@@ -222,9 +229,22 @@ const initLogin = async () => {
         needResidentInfo.value = !!homeRes.data.increaseQuotaGrid.needResidentInfo
         // needResidentInfo.value = true // TODO: 测试用
       }
+      track({
+        productCode: 'ZYR',
+        eventType: 'view',
+        sceneType: 'receive',
+        resultType: 'page',
+        dataInfoList: [
+          {key: 'message', message: needAssetInfo.value || needResidentInfo.value ? '有提额卡片' : '无提额卡片'},
+          // {key: 'message3', message: ''},
+          {key: 'info5', message: window.location.href},
+        ],
+      })
     }
   } catch (err) {
     console.error('union_login or home_page error', err)
+  } finally {
+    loading.value = false
   }
 }
 initLogin()
@@ -255,6 +275,17 @@ const handleViewLimit = () => {
     router.push('/download')
     return
   }
+  track({
+    productCode: 'ZYR',
+    eventType: 'click',
+    sceneType: 'receive',
+    resultType: 'button',
+    dataInfoList: [
+      {key: 'message', message: needAssetInfo.value || needResidentInfo.value ? '有提额卡片' : '无提额卡片'},
+      {key: 'message2', message: '提交'},
+      {key: 'info5', message: window.location.href},
+    ],
+  })
   const payload = buildSaveAssetPayload()
   const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
   saveAssetInfo(payload, config).catch((err) => console.error('save_asset_info error', err))
@@ -298,18 +329,13 @@ const onSaveAndNextAsset = () => {
   const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
   saveAssetInfo(payload, config).catch((err) => console.error('save_asset_info error', err))
   if (needResidentInfo.value && cityText.value) {
-    onSaveAndSubmitAssetPopup()
+    onSaveAndSubmitPopup()
     return
   }
   goAfterAssetPopup()
 }
 
-const onSkipAssetStep2 = () => {
-  showPopup.value = false
-  router.push('/download')
-}
-
-const onSaveAndSubmitAssetPopup = () => {
+const onSaveAndSubmitPopup = () => {
   const options = assetPopupAreaRef.value?.getSelectedOptions?.() ?? []
   if (options.length) {
     cityText.value = options.map((o) => o.text).join(' ')
@@ -328,6 +354,18 @@ const onSaveAndSubmitAssetPopup = () => {
     }
   }
   showPopup.value = false
+  track({
+    productCode: 'ZYR',
+    eventType: 'result',
+    sceneType: 'receive',
+    resultType: 'suc',
+    dataInfoList: [
+      {key: 'message', message: '流量承接页_补充资料弹窗'},
+      // {key: 'message5', message: '资产情况:' },
+      {key: 'message5', message: '常驻省份:' + options[0]?.text + ' ' + options[1]?.text},
+      {key: 'info5', message: window.location.href},
+    ],
+  })
   router.push('/download')
 }
 
@@ -347,6 +385,9 @@ watch([showPopup, popupStep], ([show]) => {
 
 <template>
   <div class="page" :style="{ backgroundImage: `url(${homeBg})` }">
+    <div v-if="loading" class="page-loading-mask">
+      <van-loading vertical>加载中...</van-loading>
+    </div>
     <!-- 顶部蓝色祝贺条 -->
     <div class="header-bar">
       <span class="header-text">恭喜你! 成为指易融优质用户</span>
@@ -508,7 +549,7 @@ watch([showPopup, popupStep], ([show]) => {
           round
           class="asset-popup__btn"
           :disabled="!step2HasSelection"
-          @click="onSaveAndSubmitAssetPopup"
+          @click="onSaveAndSubmitPopup"
         >
           保存并提交
         </van-button>
@@ -522,6 +563,16 @@ watch([showPopup, popupStep], ([show]) => {
 </template>
 
 <style lang="scss" scoped>
+.page-loading-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(255, 255, 255, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .page {
   min-height: 100vh;
   background: #f5f5f5;
