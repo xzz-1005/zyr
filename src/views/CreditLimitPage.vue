@@ -417,7 +417,7 @@ watch([showPopup, popupStep], ([show]) => {
         <div class="section" v-if="needAssetInfo">
           <div class="section-label">
             资产情况
-            <span class="multi-hint">(可多选)</span>
+            <span class="multi-hint" v-if="assetOptions.length > 1">(可多选)</span>
           </div>
           <div class="asset-tags">
             <van-tag
