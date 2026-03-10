@@ -20,9 +20,11 @@ const assetOptions = ref([
   { label: '有商业险', value: 'insurance', noneLabel: '无商业险' },
   { label: '以上均不是', value: 'none', noneLabel: '以上均不是' },
 ])
-/** 前五项 value（排除「以上均不是」），用于校验是否已选；来自 assetOptions */
+/** 需要作答的资产 value（多项时排除最后一项「以上均不是」，仅一项时即该项） */
 const FIVE_ASSET_VALUES = computed(() =>
-  assetOptions.value.length > 1 ? assetOptions.value.slice(0, -1).map((o) => o.value) : []
+  assetOptions.value.length > 1
+    ? assetOptions.value.slice(0, -1).map((o) => o.value)
+    : assetOptions.value.map((o) => o.value)
 )
 
 /** 某一项是否已“作答”：选了“有”或“无” */
@@ -295,7 +297,6 @@ const handleViewLimit = () => {
   }
 
   if (needAssetInfo.value && !hasValidAssetSelection()) {
-    console.log('needAssetInfo=====', cityText.value)
     popupStep.value = 1
     assetPopupHasTwoSteps.value = needResidentInfo.value && !cityText.value
     openAssetPopupStep1()
@@ -419,17 +420,37 @@ watch([showPopup, popupStep], ([show]) => {
             资产情况
             <span class="multi-hint" v-if="assetOptions.length > 1">(可多选)</span>
           </div>
-          <div class="asset-tags">
-            <van-tag
-              v-for="opt in assetOptions"
-              :key="opt.value"
-              :type="assets.includes(opt.value) ? 'primary' : 'default'"
-              class="asset-tag"
-              :class="{ 'asset-tag--selected': assets.includes(opt.value) }"
-              @click="toggleAsset(opt.value)"
-            >
-              {{ opt.label }}
-            </van-tag>
+          <div class="asset-tags" :class="{ 'asset-tags--single': assetOptions.length === 1 }">
+            <template v-if="assetOptions.length === 1 && assetOptions[0]">
+              <van-tag
+                :type="assets.includes(assetOptions[0].value) ? 'primary' : 'default'"
+                class="asset-tag"
+                :class="{ 'asset-tag--selected': assets.includes(assetOptions[0].value) }"
+                @click="toggleAsset(assetOptions[0].value)"
+              >
+                {{ assetOptions[0].label }}
+              </van-tag>
+              <van-tag
+                :type="assets.includes('no_' + assetOptions[0].value) ? 'primary' : 'default'"
+                class="asset-tag"
+                :class="{ 'asset-tag--selected': assets.includes('no_' + assetOptions[0].value) }"
+                @click="toggleAsset('no_' + assetOptions[0].value)"
+              >
+                {{ assetOptions[0].noneLabel ?? ('无' + assetOptions[0].label.slice(1)) }}
+              </van-tag>
+            </template>
+            <template v-else>
+              <van-tag
+                v-for="opt in assetOptions"
+                :key="opt.value"
+                :type="assets.includes(opt.value) ? 'primary' : 'default'"
+                class="asset-tag"
+                :class="{ 'asset-tag--selected': assets.includes(opt.value) }"
+                @click="toggleAsset(opt.value)"
+              >
+                {{ opt.label }}
+              </van-tag>
+            </template>
           </div>
         </div>
 
