@@ -18,6 +18,7 @@ export function isHarmony() {
 
 export function getPhoneBrand() {
   const ua = navigator.userAgent.toLowerCase();
+  console.log('getPhoneBrand=====', navigator.userAgent, ua)
   if (ua.includes('huawei')) {
     return 'huawei'; // 华为
   } else if (ua.includes('honor')) {

@@ -25,7 +25,7 @@ onMounted(async () => {
   try {
     const params = {
       systemType: isIOS() ? 'ios' : 'android',
-      brandType: getPhoneBrand()
+      brandType: isIOS() ? undefined : getPhoneBrand()
     }
     const res = await apkInfo(params, config)
     const data = res?.data ?? res
@@ -40,6 +40,7 @@ onMounted(async () => {
 })
 
 function onDownload() {
+  console.log('onDownload=====', document.visibilityState)
   if (appMarketUrl.value) {
     window.location.href = appMarketUrl.value
     // 2秒后检测是否跳转失败，失败则降级下载apk

@@ -290,11 +290,9 @@ const handleViewLimit = () => {
   })
   const payload = buildSaveAssetPayload()
   const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
-  saveAssetInfo(payload, config).catch((err) => console.error('save_asset_info error', err))
-  console.log('residentInfoPayload=====', residentInfoPayload.value)
-  if (residentInfoPayload.value) {
-    saveResidentInfo(residentInfoPayload.value, config).catch((err) => console.error('save_resident_info error', err))
-  }
+  console.log('handleViewLimit=====', needAssetInfo.value, assets.value)
+  if (needAssetInfo.value && assets.value.length) saveAssetInfo(payload, config).catch((err) => console.error('save_asset_info error', err))
+  if (needResidentInfo.value && cityText.value) onSaveAndSubmit()
 
   if (needAssetInfo.value && !hasValidAssetSelection()) {
     popupStep.value = 1
