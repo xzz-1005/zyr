@@ -49,7 +49,7 @@ const assetPopupStep1BtnDisabled = computed(() => {
   return assets.value.length === 0
 })
 const cityText = ref('')
-/** 已选常驻城市对应的接口参数，用于 handleViewLimit 时一并提交 */
+/** 已选常驻省市对应的接口参数，用于 handleViewLimit 时一并提交 */
 const residentInfoPayload = ref(null)
 const showAreaPicker = ref(false)
 const areaRef = ref(null)
@@ -73,7 +73,7 @@ const loginToken = ref(null)
 const estimateTitle = ref('预估最高综合可借（元）')
 /** 额度说明，来自接口 homeQuotaGrid.tips */
 const estimateTips = ref('年化综合资金成本（单利）5%～24%，借1万用1年日均息费0.8元起')
-/** 是否展示常驻城市，来自接口 needResidentInfo */
+/** 是否展示常驻省市，来自接口 needResidentInfo */
 const needResidentInfo = ref(false)
 const loading = ref(false)
 
@@ -363,7 +363,7 @@ const onSaveAndSubmitPopup = () => {
     dataInfoList: [
       {key: 'message', message: '流量承接页_补充资料弹窗'},
       // {key: 'message5', message: '资产情况:' },
-      {key: 'message5', message: '常驻省份:' + options[0]?.text + ' ' + options[1]?.text},
+      {key: 'message5', message: '常驻省市:' + options[0]?.text + ' ' + options[1]?.text},
       {key: 'info5', message: window.location.href},
     ],
   })
@@ -400,7 +400,7 @@ watch([showPopup, popupStep], ([show]) => {
         <div class="estimate-card-header">
           <div class="estimate-card-header-title">指易融</div>
           <div class="estimate-card-header-divider"></div>
-          <div class="estimate-card-header-subtitle">让金融更简单</div>
+          <div class="estimate-card-header-subtitle">让金融更容易</div>
         </div>
         <div class="estimate-title">{{ estimateTitle }}</div>
         <div class="estimate-sub">（实际以最终审批结果为准）</div>
@@ -456,7 +456,7 @@ watch([showPopup, popupStep], ([show]) => {
 
         <van-cell
           v-if="needResidentInfo"
-          title="常驻城市"
+          title="常驻省市"
           :value="cityText || '请选择所在省市'"
           is-link
           :value-class="cityText ? '' : 'placeholder'"
@@ -471,7 +471,7 @@ watch([showPopup, popupStep], ([show]) => {
 
       <!-- 温馨提示 -->
       <div class="disclaimer">
-        温馨提示:未经您的许可,本平台不会对您的个人信息进行任何处理。请谨慎第三方短信、电话诈骗、确保您的私密资金安全。
+        温馨提示：未经您的许可，本平台不会对您的个人信息进行任何处理。请谨慎第三方短信、电话诈骗，确保您的隐私与资金安全。
       </div>
     </div>
 
@@ -479,9 +479,10 @@ watch([showPopup, popupStep], ([show]) => {
     <van-popup v-model:show="showAreaPicker" position="bottom" round>
       <van-area
         ref="areaRef"
-        title="选择常驻省份"
+        title="选择常驻省市"
         :area-list="areaList"
         :columns-num="2"
+        :visible-option-num='3'
         @confirm="onAreaConfirm"
         @cancel="showAreaPicker = false"
       >
@@ -498,7 +499,7 @@ watch([showPopup, popupStep], ([show]) => {
     <van-popup v-model:show="showPopup" position="bottom" round class="asset-popup">
       <div class="asset-popup__header">
         <span class="asset-popup__close" @click="showPopup = false">×</span>
-        <span class="asset-popup__title">{{ popupStep === 1 ? '选择资产情况' : '选择常驻省份' }}</span>
+        <span class="asset-popup__title">{{ popupStep === 1 ? '选择资产情况' : '选择常驻省市' }}</span>
         <span class="asset-popup__right">
           <span v-if="popupStep === 1 && needResidentInfo && !cityText" class="asset-popup__skip" @click="onSkipAsset">跳过</span>
         </span>
@@ -560,6 +561,7 @@ watch([showPopup, popupStep], ([show]) => {
               ref="assetPopupAreaRef"
               :area-list="areaList"
               :columns-num="2"
+              :visible-option-num='3'
               @change="onStep2AreaChange"
             />
           </div>
@@ -637,7 +639,7 @@ watch([showPopup, popupStep], ([show]) => {
 
   .estimate-card-header-title {
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 800;
     color: #056EEA;
   }
 
@@ -764,6 +766,7 @@ watch([showPopup, popupStep], ([show]) => {
   margin-top: 24px;
   height: 48px;
   font-size: 16px;
+  background-color: #056EEA;
 }
 
 .disclaimer {
@@ -877,7 +880,7 @@ watch([showPopup, popupStep], ([show]) => {
 .asset-popup__area-wrap {
   height: 100%;
   padding: 0 16px 8px;
-  min-height: 260px;
+  min-height: 150px;
 }
 
 .asset-popup__area-wrap :deep(.van-picker__toolbar) {

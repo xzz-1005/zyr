@@ -15,3 +15,26 @@ export function isIOS() {
 export function isHarmony() {
   return /HarmonyOS|HMSCore/.test(navigator.userAgent)
 }
+
+export function getPhoneBrand() {
+  const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes('huawei')) {
+    return 'huawei'; // 华为
+  } else if (ua.includes('honor')) {
+    return 'honor'; // 荣耀
+  } else if (ua.includes('xiaomi') || ua.includes('mi ')) {
+    return 'xiaomi'; // 小米/红米
+  } else if (ua.includes('oppo')) {
+    return 'oppo'; // OPPO
+  } else if (ua.includes('vivo') || ua.includes('vivo ')) {
+    return 'vivo'; // VIVO
+  } else if (ua.includes('samsung')) {
+    return 'samsung'; // 三星
+  } else if (ua.includes('meizu')) {
+    return 'meizu'; // 魅族
+  } else if (ua.includes('oneplus')) {
+    return 'oneplus'; // 一加
+  } else {
+    return 'other'; // 其他品牌（如中兴、联想等）
+  }
+}

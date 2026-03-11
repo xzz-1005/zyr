@@ -2,13 +2,15 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { apkInfo } from '@/api/union'
-import { isIOS, isHarmony } from '@/utils/device'
+import { isIOS, isHarmony, getPhoneBrand } from '@/utils/device'
 import logoImg from '../assets/images/logo.png'
 import downloadBg from '../assets/images/download-bg.png'
+import { showToast } from 'vant'
 
 const router = useRouter()
 /** 当前设备对应的 APK 下载链接，由 apk_info 接口按设备类型解析 */
 const apkDownloadUrl = ref('')
+const appMarketUrl = ref('')
 
 function getApkInfoByDevice(data) {
   if (!data) return null
@@ -21,19 +23,34 @@ onMounted(async () => {
   const token = localStorage.getItem('loginToken')
   const config = token ? { headers: { Authorization: token } } : undefined
   try {
-    const res = await apkInfo({}, config)
-    const data = res?.data ?? res
-    const info = getApkInfoByDevice(data)
-    if (info?.apkDownloadUrl) {
-      apkDownloadUrl.value = info.apkDownloadUrl
+    const params = {
+      systemType: isIOS() ? 'ios' : 'android',
+      brandType: getPhoneBrand()
     }
+    const res = await apkInfo(params, config)
+    const data = res?.data ?? res
+    // const info = getApkInfoByDevice(data)
+    apkDownloadUrl.value = data.apkDownloadUrl
+    // appMarketUrl.value = data.appMarketUrl
+    appMarketUrl.value = data.appMarketUrl
+    console.log('onMounted=====', appMarketUrl.value, apkDownloadUrl.value)
   } catch (err) {
     console.error('apk_info error', err)
   }
 })
 
-const onDownload = () => {
-  if (apkDownloadUrl.value) {
+function onDownload() {
+  if (appMarketUrl.value) {
+    window.location.href = appMarketUrl.value
+    // 2秒后检测是否跳转失败，失败则降级下载apk
+    setTimeout(() => {
+      if (document.visibilityState === 'visible') {
+        if (!apkDownloadUrl.value) { showToast('无法下载app'); return }
+        window.location.href = apkDownloadUrl.value
+      }
+    }, 2000);
+  } else {
+    if (!apkDownloadUrl.value) { showToast('未找到该应用'); return }
     window.location.href = apkDownloadUrl.value
   }
 }

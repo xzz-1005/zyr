@@ -18,8 +18,9 @@ request.interceptors.request.use((config) => {
   config.headers['Device-Id'] = 'AJSHQZDSD'
   config.headers['Device-Brand'] = 'APPLE 11 PRO'
   config.headers['Device-Model'] = 'MWDH2CHA'
-  config.headers['Device-Type'] = isIOS() ? 'ios' : 'android'
+  config.headers['Device-Type'] = isIOS() ? 'IOS' : 'ANDROID'
   config.headers['System-Version'] = '26.2'
+  config.headers['System-Version-Code'] = isIOS() ? 'IOS_26.2' : 'ANDROID_26.2'
   config.headers['App-Code'] = 'ZYR'
   config.headers['Source-App-Code'] = 'API_TCSK'  
   return config
