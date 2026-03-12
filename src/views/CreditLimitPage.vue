@@ -410,6 +410,19 @@ const handleViewLimit = () => {
     }
   }
   //todo 无资产、有城市。有资产、无城市
+   if (cityText.value && !needAssetInfo.value) {
+    track({
+      productCode: 'ZYR',
+      eventType: 'result',
+      sceneType: 'receive',
+      resultType: 'suc',
+      dataInfoList: [
+        {key: 'message', message: '流量承接页'},
+        {key: 'message5', message: '常驻省份(' + cityText.value + ')'},
+        {key: 'info5', message: window.location.href},
+      ],
+    })
+  }
   if (assets.value.length && cityText.value) {
     track({
       productCode: 'ZYR',
