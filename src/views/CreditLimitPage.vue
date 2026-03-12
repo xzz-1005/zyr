@@ -79,6 +79,7 @@ const estimateTips = ref('年化综合资金成本（单利）5%～24%，借1万
 /** 是否展示常驻省市，来自接口 needResidentInfo */
 const needResidentInfo = ref(false)
 const loading = ref(false)
+const onlyOneStep = ref(false)
 
 const areaList = ref({
   province_list: {},
@@ -96,6 +97,11 @@ onMounted(async () => {
 
 const formatNumber = (num) => {
   return num.toLocaleString()
+}
+
+const closePopup = () => {
+  showPopup.value = false
+  getHomePage()
 }
 
 const toggleAsset = (value) => {
@@ -139,8 +145,12 @@ const onAreaChange = ({ selectedOptions }) => {
   areaSelectionIsDefault.value = !isAreaSelectionValid(selectedOptions)
 }
 
-const handleAreaConfirmClick = () => {
-  if (areaSelectionIsDefault.value) return
+const handleAreaConfirmClick = (e) => {
+  if (areaSelectionIsDefault.value) {
+    e?.preventDefault?.()
+    e?.stopPropagation?.()
+    return
+  }
   const options = areaRef.value?.getSelectedOptions?.() ?? []
   onAreaConfirm({ selectedOptions: options })
 }
@@ -171,6 +181,7 @@ const onSkipArea = () => {
   router.push('/download')
 }
 
+//首页常驻省市
 const onSaveAndSubmit = () => {
   const options = areaRef.value?.getSelectedOptions?.() ?? []
   if (options.length) {
@@ -223,47 +234,57 @@ const initLogin = async () => {
       } catch (e) {
         // ignore
       }
-      const homeRes = await homePage(
-        {},
-      )
-      const homeQuota = homeRes?.data?.homeQuotaGrid
-      if (homeQuota?.title) {
-        estimateTitle.value = homeQuota.title
-      }
-      if (homeQuota?.tips) {
-        estimateTips.value = homeQuota.tips
-      }
-      if (homeQuota?.quota != null) {
-        estimateAmount.value = homeQuota.quota
-      }
-      const list = homeRes?.data?.increaseQuotaGrid?.assetItemList
-      if (Array.isArray(list) && list.length) {
-        assetOptions.value = list.map((item) => ({
-          label: item.haveDesc,
-          value: item.assetCode.toLowerCase(),
-          noneLabel: item.noneDesc,
-        }))
-      }
-      if (homeRes?.data?.increaseQuotaGrid.needAssetInfo != null) {
-        needAssetInfo.value = !!homeRes.data.increaseQuotaGrid.needAssetInfo
-        // needAssetInfo.value = true // TODO: 测试用
-      }
-      if (homeRes?.data?.increaseQuotaGrid.needResidentInfo != null) {
-        needResidentInfo.value = !!homeRes.data.increaseQuotaGrid.needResidentInfo
-        needResidentInfo.value = true // TODO: 测试用
-      }
-      track({
-        productCode: 'ZYR',
-        eventType: 'view',
-        sceneType: 'receive',
-        resultType: 'page',
-        dataInfoList: [
-          {key: 'message', message: needAssetInfo.value || needResidentInfo.value ? '有提额卡片' : '无提额卡片'},
-          // {key: 'message3', message: ''},
-          {key: 'info5', message: window.location.href},
-        ],
-      })
+      await getHomePage()
     }
+  } catch (err) {
+    console.error('union_login or home_page error', err)
+  } finally {
+    loading.value = false
+  }
+}
+
+const getHomePage = async () => {
+  try {
+    const homeRes = await homePage(
+      {},
+    )
+    const homeQuota = homeRes?.data?.homeQuotaGrid
+    if (homeQuota?.title) {
+      estimateTitle.value = homeQuota.title
+    }
+    if (homeQuota?.tips) {
+      estimateTips.value = homeQuota.tips
+    }
+    if (homeQuota?.quota != null) {
+      estimateAmount.value = homeQuota.quota
+    }
+    const list = homeRes?.data?.increaseQuotaGrid?.assetItemList
+    if (Array.isArray(list) && list.length) {
+      assetOptions.value = list.map((item) => ({
+        label: item.haveDesc,
+        value: item.assetCode.toLowerCase(),
+        noneLabel: item.noneDesc,
+      }))
+    }
+    if (homeRes?.data?.increaseQuotaGrid.needAssetInfo != null) {
+      needAssetInfo.value = !!homeRes.data.increaseQuotaGrid.needAssetInfo
+      needAssetInfo.value = true // TODO: 测试用
+    }
+    if (homeRes?.data?.increaseQuotaGrid.needResidentInfo != null) {
+      needResidentInfo.value = !!homeRes.data.increaseQuotaGrid.needResidentInfo
+      needResidentInfo.value = true // TODO: 测试用
+    }
+    track({
+      productCode: 'ZYR',
+      eventType: 'view',
+      sceneType: 'receive',
+      resultType: 'page',
+      dataInfoList: [
+        {key: 'message', message: needAssetInfo.value || needResidentInfo.value ? '有提额卡片' : '无提额卡片'},
+        // {key: 'message3', message: ''},
+        {key: 'info5', message: window.location.href},
+      ],
+    })
   } catch (err) {
     console.error('union_login or home_page error', err)
   } finally {
@@ -311,22 +332,28 @@ const handleViewLimit = () => {
   })
   const payload = buildSaveAssetPayload()
   const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
-  console.log('handleViewLimit=====', needAssetInfo.value, assets.value)
-  if (needAssetInfo.value && assets.value.length) saveAssetInfo(payload, config).catch((err) => console.error('save_asset_info error', err))
-  if (needResidentInfo.value && cityText.value) onSaveAndSubmit()
+  console.log('handleViewLimit=====', needAssetInfo.value, assets.value, needResidentInfo.value, cityText.value)
 
-  if (needAssetInfo.value && !hasValidAssetSelection()) {
-    popupStep.value = 1
-    assetPopupHasTwoSteps.value = needResidentInfo.value && !cityText.value
-    openAssetPopupStep1()
-    showPopup.value = true
-    return
+  if (needAssetInfo.value) {
+    if (assets.value.length) {
+      saveAssetInfo(payload, config).then(() => {onlyOneStep.value = true}).catch((err) => console.error('save_asset_info error', err))
+    } else {
+      popupStep.value = 1
+      assetPopupHasTwoSteps.value = needResidentInfo.value && !cityText.value
+      if (needResidentInfo.value && cityText.value) onSaveAndSubmit()
+      openAssetPopupStep1()
+      showPopup.value = true
+      return
+    }
   }
-  if (needResidentInfo.value && !cityText.value) {
-    popupStep.value = 2
-    assetPopupHasTwoSteps.value = false
-    showPopup.value = true
-    return
+  if (needResidentInfo.value) {
+    if (cityText.value) {onSaveAndSubmit()} 
+    else {
+      popupStep.value = 2
+      assetPopupHasTwoSteps.value = false
+      showPopup.value = true
+      return
+    }
   }
   router.push('/download')
 }
@@ -355,6 +382,7 @@ const onSaveAndNextAsset = () => {
   goAfterAssetPopup()
 }
 
+//弹窗常驻省市
 const onSaveAndSubmitPopup = () => {
   const options = assetPopupAreaRef.value?.getSelectedOptions?.() ?? []
   if (options.length) {
@@ -390,7 +418,7 @@ const onSaveAndSubmitPopup = () => {
 }
 
 const onStep2AreaChange = ({ selectedOptions }) => {
-  step2HasSelection.value = selectedOptions?.length > 0
+  step2HasSelection.value = isAreaSelectionValid(selectedOptions)
 }
 
 watch([showPopup, popupStep], ([show]) => {
@@ -516,7 +544,7 @@ watch([showPopup, popupStep], ([show]) => {
             v-else
             class="area-confirm-btn"
             :class="{ 'area-confirm-btn--disabled': areaSelectionIsDefault }"
-            @click="handleAreaConfirmClick"
+            @click.stop="handleAreaConfirmClick($event)"
           >
             确认
           </span>
@@ -530,7 +558,7 @@ watch([showPopup, popupStep], ([show]) => {
     <!-- 选择资产/城市 两步弹层：第一步资产，第二步城市 -->
     <van-popup v-model:show="showPopup" position="bottom" round class="asset-popup">
       <div class="asset-popup__header">
-        <span class="asset-popup__close" @click="showPopup = false">×</span>
+        <span class="asset-popup__close" @click="closePopup">×</span>
         <span class="asset-popup__title">{{ popupStep === 1 ? '选择资产情况' : '选择常驻省市' }}</span>
         <span class="asset-popup__right">
           <span v-if="popupStep === 1 && needResidentInfo && !cityText" class="asset-popup__skip" @click="onSkipAsset">跳过</span>
@@ -610,7 +638,7 @@ watch([showPopup, popupStep], ([show]) => {
           保存并提交
         </van-button>
       </template>
-      <div v-if="needAssetInfo && (needResidentInfo && !cityText)" class="asset-popup__dots">
+      <div v-if="(needResidentInfo && !cityText) && !onlyOneStep" class="asset-popup__dots">
         <span class="asset-popup__dot" :class="{ 'asset-popup__dot--active': popupStep === 1 }" />
         <span class="asset-popup__dot" :class="{ 'asset-popup__dot--active': popupStep === 2 }" />
       </div>
@@ -765,29 +793,37 @@ watch([showPopup, popupStep], ([show]) => {
   gap: 10px 12px;
 }
 
-.asset-tags :deep(.van-tag) {
+.asset-tags :deep(.van-tag),
+.asset-popup__tags :deep(.van-tag) {
   cursor: pointer;
   height: 36px;
   padding: 0 12px;
   font-size: 13px;
   margin: 0;
   border: none;
-  border-radius: 16px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
 }
 
-.asset-tags :deep(.van-tag.van-tag--default) {
-  background: #F2F3FF;
-  color: #646566;
+.asset-tags :deep(.van-tag.van-tag--default),
+.asset-popup__tags :deep(.van-tag.van-tag--default) {
+  background: #F3F3F3;
+  color: #333333;
+  font-weight: 500;
+  font-size: 14px;
 }
 
 .asset-tags :deep(.van-tag.asset-tag--selected),
-.asset-tags :deep(.van-tag.van-tag--primary) {
-  background: #F3F3F3;
+.asset-tags :deep(.van-tag.van-tag--primary),
+.asset-popup__tags :deep(.van-tag.asset-tag--selected),
+.asset-popup__tags :deep(.van-tag.van-tag--primary) {
+  background: #F2F3FF;
   color: #0052D9;
+  font-weight: 500;
+  font-size: 14px;
 }
 
 .info-card :deep(.van-cell) {
@@ -796,6 +832,12 @@ watch([showPopup, popupStep], ([show]) => {
 
 .info-card :deep(.van-cell::after) {
   display: none;
+}
+
+.info-card :deep(.van-cell__title) {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333333;
 }
 
 .placeholder {
@@ -835,21 +877,22 @@ watch([showPopup, popupStep], ([show]) => {
 }
 
 .area-confirm-btn {
-  color: #1989fa;
+  color: #0052D9;
   font-size: 14px;
   padding: 0 4px;
 }
 .area-confirm-btn--disabled {
-  color: #c8c9cc;
+  color: #979797;
   cursor: not-allowed;
 }
 
 .area-submit-btn {
   margin: 16px;
   margin-top: 0;
-  height: 44px;
-  font-size: 15px;
+  height: 48px;
+  font-size: 16px; 
   width: calc(100% - 32px);
+  font-weight: 600;
 }
 
 /* 选择资产情况弹层 */
@@ -875,12 +918,12 @@ watch([showPopup, popupStep], ([show]) => {
 }
 
 .asset-popup__title {
-  font-size: 16px;
-  font-weight: 500;
-  color: #323233;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333333;
   text-align: center;
   justify-self: center;
-}
+}                             
 
 .asset-popup__right {
   text-align: right;
@@ -888,7 +931,7 @@ watch([showPopup, popupStep], ([show]) => {
 
 .asset-popup__skip {
   font-size: 14px;
-  color: #1989fa;
+  color: #979797;
   cursor: pointer;
 }
 
@@ -911,36 +954,12 @@ watch([showPopup, popupStep], ([show]) => {
   grid-template-columns: 1fr 1fr;
 }
 
-.asset-popup__tags :deep(.van-tag) {
-  cursor: pointer;
-  height: 36px;
-  padding: 0 12px;
-  font-size: 13px;
-  margin: 0;
-  border: none;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-}
-
-.asset-popup__tags :deep(.van-tag.van-tag--default) {
-  background: #f7f8fa;
-  color: #646566;
-}
-
-.asset-popup__tags :deep(.van-tag.asset-tag--selected),
-.asset-popup__tags :deep(.van-tag.van-tag--primary) {
-  background: #ecf9ff;
-  color: #1989fa;
-}
-
 .asset-popup__btn {
   width: calc(100% - 32px);
   margin: 0 16px;
-  height: 44px;
-  font-size: 15px;
+  height: 48px;
+  font-size: 16px;
+  font-weight: 600;
   box-sizing: border-box;
 }
 
@@ -952,6 +971,11 @@ watch([showPopup, popupStep], ([show]) => {
 
 .asset-popup__area-wrap :deep(.van-picker__toolbar) {
   display: none;
+}
+
+:deep(.van-picker-column__item--selected) {
+  font-weight: 600;
+  font-size: 16px;
 }
 
 .asset-popup__dots {
@@ -969,6 +993,6 @@ watch([showPopup, popupStep], ([show]) => {
 }
 
 .asset-popup__dot--active {
-  background: #1989fa;
+  background: #0052D9;
 }
 </style>
