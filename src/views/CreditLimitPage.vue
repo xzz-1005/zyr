@@ -269,8 +269,8 @@ const getHomePage = async () => {
     }
     if (homeRes?.data?.increaseQuotaGrid.needAssetInfo != null) {
       needAssetInfo.value = !!homeRes.data.increaseQuotaGrid.needAssetInfo
-      onlyOneStep.value = !needAssetInfo.value
       // needAssetInfo.value = true // TODO: 测试用
+      onlyOneStep.value = !needAssetInfo.value
     }
     if (homeRes?.data?.increaseQuotaGrid.needResidentInfo != null) {
       needResidentInfo.value = !!homeRes.data.increaseQuotaGrid.needResidentInfo
@@ -930,10 +930,18 @@ watch([showPopup, popupStep], ([show]) => {
     color: #000000;
     font-size: 18px;
   }
+  :deep(.van-cell__value) {
+    text-align: left;
+    // color: #000000; // ui todo
+  }
   :deep(.placeholder) {
     color: #BEC0C2 !important;
     font-weight: 500;
     font-size: 14px;
+  }
+  :deep(.van-cell__title) {
+    flex: unset;
+    margin-right: 44px;
   }
 }
 
@@ -1010,6 +1018,12 @@ watch([showPopup, popupStep], ([show]) => {
 /* 选择资产情况弹层 */
 .asset-popup {
   padding: 0 0 24px;
+
+  :deep(.van-button--disabled) {
+    background-color: #B5C7FF;
+    border-color: #B5C7FF;
+    opacity: 1 !important;
+  }
 }
 
 .asset-popup__header {
