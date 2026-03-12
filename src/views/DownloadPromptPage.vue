@@ -3,20 +3,20 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { apkInfo } from '@/api/union'
 import { isIOS, isHarmony, getPhoneBrand } from '@/utils/device'
-import logoImg from '../assets/images/logo.png'
-import downloadBg from '../assets/images/download-bg.png'
+import logoImg from '@/assets/images/logo.png'
+import downloadBg from '@/assets/images/download-bg.png'
 import { showToast } from 'vant'
 
 const router = useRouter()
 /** 当前设备对应的 APK 下载链接，由 apk_info 接口按设备类型解析 */
 const apkDownloadUrl = ref('')
 const appMarketUrl = ref('')
+const appLaunchFlag = ref(false)
 
-function getApkInfoByDevice(data) {
-  if (!data) return null
-  if (isIOS()) return data.iosApkInfo
-  if (isHarmony()) return data.harmonyApkInfo
-  return data.androidApkInfo
+function getApkInfoByDevice() {
+  if (isIOS()) return 'ios'
+  if (isHarmony()) return 'harmonyos'
+  return 'android'
 }
 
 onMounted(async () => {
@@ -24,16 +24,15 @@ onMounted(async () => {
   const config = token ? { headers: { Authorization: token } } : undefined
   try {
     const params = {
-      systemType: isIOS() ? 'ios' : 'android',
-      brandType: isIOS() ? undefined : getPhoneBrand()
+      systemType: getApkInfoByDevice(),
+      brandType: getPhoneBrand()
     }
     const res = await apkInfo(params, config)
     const data = res?.data ?? res
-    // const info = getApkInfoByDevice(data)
     apkDownloadUrl.value = data.apkDownloadUrl
-    // appMarketUrl.value = data.appMarketUrl
     appMarketUrl.value = data.appMarketUrl
-    console.log('onMounted=====', appMarketUrl.value, apkDownloadUrl.value)
+    appLaunchFlag.value = data.appLaunchFlag
+    console.log('Market=====', appMarketUrl.value, 'apk=====', apkDownloadUrl.value)
   } catch (err) {
     console.error('apk_info error', err)
   }
@@ -41,17 +40,18 @@ onMounted(async () => {
 
 function onDownload() {
   console.log('onDownload=====', document.visibilityState)
-  if (appMarketUrl.value) {
+  if (appLaunchFlag.value) {
+    if (!appMarketUrl.value) { showToast('未找到该应用'); return }
     window.location.href = appMarketUrl.value
     // 2秒后检测是否跳转失败，失败则降级下载apk
-    setTimeout(() => {
-      if (document.visibilityState === 'visible') {
-        if (!apkDownloadUrl.value) { showToast('无法下载app'); return }
-        window.location.href = apkDownloadUrl.value
-      }
-    }, 2000);
+    // setTimeout(() => {
+    //   if (document.visibilityState === 'visible') {
+    //     if (!apkDownloadUrl.value) { showToast('无法下载app'); return }
+    //     window.location.href = apkDownloadUrl.value
+    //   }
+    // }, 2000);
   } else {
-    if (!apkDownloadUrl.value) { showToast('未找到该应用'); return }
+    if (!apkDownloadUrl.value) { showToast('下载app失败'); return }
     window.location.href = apkDownloadUrl.value
   }
 }

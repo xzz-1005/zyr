@@ -1,10 +1,11 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useTrack } from '../composables/useTrack'
+import { useTrack } from '@/composables/useTrack'
 import { unionLogin, homePage, saveAssetInfo, saveResidentInfo } from '@/api/union'
 import { getResidentCity } from '@/api/common'
-import homeBg from '../assets/images/home-bg.png'
+import homeBg from '@/assets/images/home-bg.png'
+import vectorIcon from '@/assets/images/Vector.png'
 import { formatAreaList } from '@/utils/common'
 import { useRoute } from 'vue-router'
 
@@ -53,6 +54,8 @@ const cityText = ref('')
 const residentInfoPayload = ref(null)
 const showAreaPicker = ref(false)
 const areaRef = ref(null)
+/** 当前选择是否为默认「请选择」（用于右上角确认置灰） */
+const areaSelectionIsDefault = ref(true)
 /** 仅当因未选城市点击主按钮而打开弹层时为 true，用于显示「跳过」和「保存并提交」 */
 const areaPopupFromCta = ref(false)
 /** 选择资产情况弹层（未选资产/未选城市时点击主按钮弹出），内部分两步 */
@@ -70,7 +73,7 @@ const estimateAmount = ref(200000)
 /** 登录 token，来自接口 unionLogin.data.loginToken */
 const loginToken = ref(null)
 /** 额度标题，来自接口 homeQuotaGrid.title */
-const estimateTitle = ref('预估最高综合可借（元）')
+const estimateTitle = ref('预估最高综合可借(元)')
 /** 额度说明，来自接口 homeQuotaGrid.tips */
 const estimateTips = ref('年化综合资金成本（单利）5%～24%，借1万用1年日均息费0.8元起')
 /** 是否展示常驻省市，来自接口 needResidentInfo */
@@ -121,7 +124,25 @@ const toggleAsset = (value) => {
 
 const showCityPicker = () => {
   areaPopupFromCta.value = false
+  areaSelectionIsDefault.value = true
   showAreaPicker.value = true
+}
+
+/** 判断省市区选择是否为有效选择（非占位「请选择」） */
+const isAreaSelectionValid = (selectedOptions) => {
+  if (!selectedOptions || selectedOptions.length < 2) return false
+  const [p, c] = selectedOptions
+  return !!(p?.text && p.text !== '请选择' && c?.text && c.text !== '请选择')
+}
+
+const onAreaChange = ({ selectedOptions }) => {
+  areaSelectionIsDefault.value = !isAreaSelectionValid(selectedOptions)
+}
+
+const handleAreaConfirmClick = () => {
+  if (areaSelectionIsDefault.value) return
+  const options = areaRef.value?.getSelectedOptions?.() ?? []
+  onAreaConfirm({ selectedOptions: options })
 }
 
 const onAreaConfirm = ({ selectedOptions }) => {
@@ -198,12 +219,12 @@ const initLogin = async () => {
     if (loginToken.value) {
       try {
         localStorage.setItem('loginToken', loginToken.value)
+        localStorage.setItem('sourceAppCode', res?.data?.sourceAppCode)
       } catch (e) {
         // ignore
       }
       const homeRes = await homePage(
         {},
-        { headers: { Authorization: loginToken.value } }
       )
       const homeQuota = homeRes?.data?.homeQuotaGrid
       if (homeQuota?.title) {
@@ -229,7 +250,7 @@ const initLogin = async () => {
       }
       if (homeRes?.data?.increaseQuotaGrid.needResidentInfo != null) {
         needResidentInfo.value = !!homeRes.data.increaseQuotaGrid.needResidentInfo
-        // needResidentInfo.value = true // TODO: 测试用
+        needResidentInfo.value = true // TODO: 测试用
       }
       track({
         productCode: 'ZYR',
@@ -464,7 +485,10 @@ watch([showPopup, popupStep], ([show]) => {
 
       <!-- 主按钮 -->
       <van-button type="primary" block round class="cta-btn" @click="handleViewLimit">
-        点击查看您的专属额度
+        <span class="cta-btn__inner">
+          <img :src="vectorIcon" class="cta-btn__icon" alt="" />
+          点击查看您的专属额度
+        </span>
       </van-button>
 
       <!-- 温馨提示 -->
@@ -481,11 +505,21 @@ watch([showPopup, popupStep], ([show]) => {
         :area-list="areaList"
         :columns-num="2"
         :visible-option-num='3'
+        :columns-placeholder="['请选择', '请选择']"
+        @change="onAreaChange"
         @confirm="onAreaConfirm"
         @cancel="showAreaPicker = false"
       >
-        <template v-if="areaPopupFromCta" #confirm>
-          <span @click="onSkipArea">跳过</span>
+        <template #confirm>
+          <span v-if="areaPopupFromCta" @click="onSkipArea">跳过</span>
+          <span
+            v-else
+            class="area-confirm-btn"
+            :class="{ 'area-confirm-btn--disabled': areaSelectionIsDefault }"
+            @click="handleAreaConfirmClick"
+          >
+            确认
+          </span>
         </template>
       </van-area>
       <van-button v-if="areaPopupFromCta" type="primary" block round class="area-submit-btn" @click="onSaveAndSubmit">
@@ -560,6 +594,7 @@ watch([showPopup, popupStep], ([show]) => {
               :area-list="areaList"
               :columns-num="2"
               :visible-option-num='3'
+              :columns-placeholder="['请选择', '请选择']"
               @change="onStep2AreaChange"
             />
           </div>
@@ -610,6 +645,7 @@ watch([showPopup, popupStep], ([show]) => {
 
   .header-text {
     line-height: 26px;
+    font-weight: 600;
   }
 }
 
@@ -651,6 +687,7 @@ watch([showPopup, popupStep], ([show]) => {
   .estimate-card-header-subtitle {
     font-size: 12px;
     color: #056EEA;
+    font-weight: 300;
   }
 }
 
@@ -664,6 +701,7 @@ watch([showPopup, popupStep], ([show]) => {
 }
 
 .estimate-sub {
+  font-weight: 500;
   font-size: 10px;
   color: #BEC0C2;
   line-height: 20px;
@@ -675,6 +713,7 @@ watch([showPopup, popupStep], ([show]) => {
   color: #323233;
   line-height: 56px;
   margin-bottom: 7px;
+  font-family: 'DIN Alternate';
 }
 
 .estimate-desc {
@@ -682,6 +721,7 @@ watch([showPopup, popupStep], ([show]) => {
   color: #BEC0C2;
   line-height: 20px;
   padding-bottom: 20px;
+  font-weight: 500;
 }
 
 .info-card {
@@ -691,12 +731,12 @@ watch([showPopup, popupStep], ([show]) => {
 .info-card .card-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333333E5;
+  color: #333333;
   margin-bottom: 16px;
 }
 
 .optional {
-  font-size: 12px;
+  font-size: 16px;
   color: #969799;
   font-weight: 400;
 }
@@ -707,13 +747,15 @@ watch([showPopup, popupStep], ([show]) => {
 
 .section-label {
   font-size: 14px;
-  color: #323233;
+  font-weight: 600;
+  color: #333333;
   margin-bottom: 10px;
 }
 
 .multi-hint {
-  font-size: 12px;
-  color: #1989fa;
+  font-size: 14px;
+  color: #0052D9;
+  font-weight: 400;
   margin-left: 4px;
 }
 
@@ -738,14 +780,14 @@ watch([showPopup, popupStep], ([show]) => {
 }
 
 .asset-tags :deep(.van-tag.van-tag--default) {
-  background: #f7f8fa;
+  background: #F2F3FF;
   color: #646566;
 }
 
 .asset-tags :deep(.van-tag.asset-tag--selected),
 .asset-tags :deep(.van-tag.van-tag--primary) {
-  background: #ecf9ff;
-  color: #1989fa;
+  background: #F3F3F3;
+  color: #0052D9;
 }
 
 .info-card :deep(.van-cell) {
@@ -757,22 +799,49 @@ watch([showPopup, popupStep], ([show]) => {
 }
 
 .placeholder {
-  color: #c8c9cc !important;
+  color: #BEC0C2 !important;
+  font-weight: 500;
+  font-size: 14px;
 }
 
 .cta-btn {
   margin-top: 24px;
   height: 48px;
-  font-size: 16px;
+  font-size: 18px;
   background-color: #056EEA;
+  font-weight: 500;
+}
+
+.cta-btn__inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.cta-btn__icon {
+  height: 20px;
+  width: auto;
+  vertical-align: middle;
 }
 
 .disclaimer {
   margin-top: 20px;
   padding: 0 4px;
-  font-size: 11px;
-  color: #969799;
+  font-size: 12px;
+  color: #BEC0C2;
+  font-weight: 400;
   line-height: 1.6;
+}
+
+.area-confirm-btn {
+  color: #1989fa;
+  font-size: 14px;
+  padding: 0 4px;
+}
+.area-confirm-btn--disabled {
+  color: #c8c9cc;
+  cursor: not-allowed;
 }
 
 .area-submit-btn {

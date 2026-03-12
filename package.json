@@ -15,6 +15,7 @@
   "dependencies": {
     "@vant/area-data": "^2.1.0",
     "axios": "^1.13.6",
+    "ua-parser-js": "^2.0.9",
     "vant": "^4.9.22",
     "vconsole": "^3.15.1",
     "vue": "^3.5.25",

@@ -1,3 +1,4 @@
+import { UAParser } from 'ua-parser-js';
 /**
  * 是否为 iOS 设备（含 iPhone、iPad、iPod）
  * iPad iOS 13+ 会识别为 MacIntel，通过 maxTouchPoints 辅助判断
@@ -17,25 +18,30 @@ export function isHarmony() {
 }
 
 export function getPhoneBrand() {
-  const ua = navigator.userAgent.toLowerCase();
-  console.log('getPhoneBrand=====', navigator.userAgent, ua)
-  if (ua.includes('huawei')) {
+  const parser = new UAParser();
+  const result = parser.getResult();
+  const ua = result.device.vendor
+  // const ua = navigator.userAgent.toLowerCase();
+  console.log('getPhoneBrand=====', navigator.userAgent, 'ua=====', ua)
+  if (ua.includes('Apple')) {
+    return 'ios'; // Apple
+  } else if (ua.includes('Huawei')) {
     return 'huawei'; // 华为
-  } else if (ua.includes('honor')) {
+  } else if (ua.includes('Honor')) {
     return 'honor'; // 荣耀
-  } else if (ua.includes('xiaomi') || ua.includes('mi ')) {
+  } else if (ua.includes('Xiaomi') || ua.includes('mi ')) {
     return 'xiaomi'; // 小米/红米
-  } else if (ua.includes('oppo')) {
+  } else if (ua.includes('OPPO')) {
     return 'oppo'; // OPPO
-  } else if (ua.includes('vivo') || ua.includes('vivo ')) {
+  } else if (ua.includes('Vivo') || ua.includes('vivo ')) {
     return 'vivo'; // VIVO
-  } else if (ua.includes('samsung')) {
+  } else if (ua.includes('Samsung')) {
     return 'samsung'; // 三星
-  } else if (ua.includes('meizu')) {
+  } else if (ua.includes('Meizu')) {
     return 'meizu'; // 魅族
-  } else if (ua.includes('oneplus')) {
+  } else if (ua.includes('OnePlus')) {
     return 'oneplus'; // 一加
   } else {
-    return 'other'; // 其他品牌（如中兴、联想等）
+    return ua; // 其他品牌（如中兴、联想等）
   }
 }

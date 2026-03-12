@@ -1,6 +1,7 @@
 import request from '@/utils/request'
+import { getStringFromLocation } from '@/utils/common'
 
-const productCode = 'ZYR'
+const productCode = getStringFromLocation('productCode') || 'ZYR'
 
 /**
  * H5 联合登录
