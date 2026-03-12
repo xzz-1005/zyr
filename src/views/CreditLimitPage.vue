@@ -532,7 +532,7 @@ watch([showPopup, popupStep], ([show]) => {
     </div>
     <!-- 顶部蓝色祝贺条 -->
     <div class="header-bar">
-      <span class="header-text">恭喜你! 成为指易融优质用户</span>
+      <span class="header-text">恭喜你！ 成为指易融优质用户</span>
     </div>
 
     <div class="content">
@@ -597,6 +597,7 @@ watch([showPopup, popupStep], ([show]) => {
 
         <van-cell
           v-if="needResidentInfo"
+          class="info-card-cell"
           title="常驻省市"
           :value="cityText || '请选择所在省市'"
           is-link
@@ -832,7 +833,7 @@ watch([showPopup, popupStep], ([show]) => {
 .estimate-amount {
   font-size: 56px;
   font-weight: 700;
-  color: #323233;
+  color: #000000;
   line-height: 56px;
   margin-bottom: 7px;
   font-family: 'DIN Alternate';
@@ -859,7 +860,7 @@ watch([showPopup, popupStep], ([show]) => {
 
 .optional {
   font-size: 16px;
-  color: #969799;
+  color: #BEC0C2;
   font-weight: 400;
 }
 
@@ -922,6 +923,18 @@ watch([showPopup, popupStep], ([show]) => {
 .asset-popup__tags :deep(.van-tag.asset-tag--selected),
 .asset-popup__tags :deep(.van-tag.van-tag--primary) {
   border: 1px solid #0052D9;
+}
+
+.info-card-cell {
+  :deep(.van-icon-arrow) {
+    color: #000000;
+    font-size: 18px;
+  }
+  :deep(.placeholder) {
+    color: #BEC0C2 !important;
+    font-weight: 500;
+    font-size: 14px;
+  }
 }
 
 .info-card :deep(.van-cell) {
@@ -991,6 +1004,7 @@ watch([showPopup, popupStep], ([show]) => {
   font-size: 16px; 
   width: calc(100% - 32px);
   font-weight: 600;
+  background-color: #056EEA;
 }
 
 /* 选择资产情况弹层 */
@@ -1058,6 +1072,7 @@ watch([showPopup, popupStep], ([show]) => {
   height: 48px;
   font-size: 16px;
   font-weight: 600;
+  background-color: #056EEA;
   box-sizing: border-box;
 }
 
