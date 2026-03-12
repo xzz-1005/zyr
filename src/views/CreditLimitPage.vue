@@ -16,8 +16,8 @@ const assets = ref([])
 const assetOptions = ref([
   { label: '有车', value: 'car', noneLabel: '无车' },
   { label: '有房', value: 'house', noneLabel: '无房' },
-  { label: '有企业', value: 'business', noneLabel: '无企业' },
-  { label: '有公积金', value: 'fund', noneLabel: '无公积金' },
+  { label: '有企业', value: 'company', noneLabel: '无企业' },
+  { label: '有公积金', value: 'gjj', noneLabel: '无公积金' },
   { label: '有商业险', value: 'insurance', noneLabel: '无商业险' },
   { label: '以上均不是', value: 'none', noneLabel: '以上均不是' },
 ])
@@ -269,7 +269,8 @@ const getHomePage = async () => {
     }
     if (homeRes?.data?.increaseQuotaGrid.needAssetInfo != null) {
       needAssetInfo.value = !!homeRes.data.increaseQuotaGrid.needAssetInfo
-      needAssetInfo.value = true // TODO: 测试用
+      onlyOneStep.value = !needAssetInfo.value
+      // needAssetInfo.value = true // TODO: 测试用
     }
     if (homeRes?.data?.increaseQuotaGrid.needResidentInfo != null) {
       needResidentInfo.value = !!homeRes.data.increaseQuotaGrid.needResidentInfo
@@ -318,12 +319,31 @@ const buildSaveAssetPayload = () => {
   })
   return { assetItems }
 }
+const assetCodeMap = computed(() => {
+  const map = {}
+  for (const opt of assetOptions.value) {
+    map[opt.value.toUpperCase()] = opt
+  }
+  return map
+})
+
+function getAssetDesc(assetItems = []) {
+  if (!Array.isArray(assetItems) || assetItems.length === 0) return ''
+  // 1. 优先找任意一条 haveFlag === false
+  const firstFalse = assetItems.find((it) => it.haveFlag === false)
+  if (firstFalse) {
+    const opt = assetCodeMap.value[firstFalse.assetCode]
+    return opt?.noneLabel || ''
+  }
+  // 2. 没有 false，返回所有 true 的「有 xx」
+  const haveLabels = assetItems
+    .filter((it) => it.haveFlag === true)
+    .map((it) => assetCodeMap.value[it.assetCode]?.label)
+    .filter(Boolean)
+  return haveLabels.join('、')
+}
 
 const handleViewLimit = () => {
-  if (!needAssetInfo.value && !needResidentInfo.value) {
-    router.push('/download')
-    return
-  }
   track({
     productCode: 'ZYR',
     eventType: 'click',
@@ -335,17 +355,46 @@ const handleViewLimit = () => {
       {key: 'info5', message: window.location.href},
     ],
   })
+  if (!needAssetInfo.value && !needResidentInfo.value) {
+    router.push('/download')
+    return
+  }
   const payload = buildSaveAssetPayload()
   const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
   console.log('handleViewLimit=====', needAssetInfo.value, assets.value, needResidentInfo.value, cityText.value)
 
+  const haveAssetLabel = getAssetDesc(payload.assetItems)
   if (needAssetInfo.value) {
     if (assets.value.length) {
       saveAssetInfo(payload, config).then(() => {onlyOneStep.value = true}).catch((err) => console.error('save_asset_info error', err))
+      if (!cityText.value) track({
+        productCode: 'ZYR',
+        eventType: 'result',
+        sceneType: 'receive',
+        resultType: 'suc',
+        dataInfoList: [
+          {key: 'message', message: '流量承接页'},
+          {key: 'message5', message: '资产情况: (' + haveAssetLabel + ')'},
+          {key: 'info5', message: window.location.href},
+        ],
+      })
     } else {
       popupStep.value = 1
       assetPopupHasTwoSteps.value = needResidentInfo.value && !cityText.value
-      if (needResidentInfo.value && cityText.value) onSaveAndSubmit()
+      if (needResidentInfo.value && cityText.value) {
+        onSaveAndSubmit()
+        track({
+          productCode: 'ZYR',
+          eventType: 'result',
+          sceneType: 'receive',
+          resultType: 'suc',
+          dataInfoList: [
+            {key: 'message', message: '流量承接页'},
+            {key: 'message5', message: '常驻省份（' + cityText.value + ')'},
+            {key: 'info5', message: window.location.href},
+          ],
+        })
+      }
       openAssetPopupStep1()
       showPopup.value = true
       return
@@ -359,6 +408,21 @@ const handleViewLimit = () => {
       showPopup.value = true
       return
     }
+  }
+  //todo 无资产、有城市。有资产、无城市
+  if (assets.value.length && cityText.value) {
+    track({
+      productCode: 'ZYR',
+      eventType: 'result',
+      sceneType: 'receive',
+      resultType: 'suc',
+      dataInfoList: [
+        {key: 'message', message: '流量承接页'},
+        {key: 'message5', message: '资产情况(' + haveAssetLabel + ')'},
+        {key: 'message5', message: '常驻省份(' + cityText.value + ')'},
+        {key: 'info5', message: window.location.href},
+      ],
+    })
   }
   router.push('/download')
 }
@@ -380,6 +444,18 @@ const onSaveAndNextAsset = () => {
   const payload = buildSaveAssetPayload()
   const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
   saveAssetInfo(payload, config).catch((err) => console.error('save_asset_info error', err))
+  const haveAssetLabel = getAssetDesc(payload.assetItems)
+  track({
+    productCode: 'ZYR',
+    eventType: 'result',
+    sceneType: 'receive',
+    resultType: 'suc',
+    dataInfoList: [
+      {key: 'message', message: '流量承接页_补充资料弹窗'},
+      {key: 'message5', message: '资产情况: (' + haveAssetLabel + ')'},
+      {key: 'info5', message: window.location.href},
+    ],
+  })
   if (needResidentInfo.value && cityText.value) {
     onSaveAndSubmitPopup()
     return
@@ -414,8 +490,7 @@ const onSaveAndSubmitPopup = () => {
     resultType: 'suc',
     dataInfoList: [
       {key: 'message', message: '流量承接页_补充资料弹窗'},
-      // {key: 'message5', message: '资产情况:' },
-      {key: 'message5', message: '常驻省市:' + options[0]?.text + ' ' + options[1]?.text},
+      {key: 'message5', message: '常驻省市(' + cityText.value + ')'},
       {key: 'info5', message: window.location.href},
     ],
   })
