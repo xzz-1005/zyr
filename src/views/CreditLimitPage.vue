@@ -101,6 +101,8 @@ const formatNumber = (num) => {
 
 const closePopup = () => {
   showPopup.value = false
+  assets.value = []
+  onlyOneStep.value = false
   getHomePage()
 }
 
@@ -222,7 +224,6 @@ const initLogin = async () => {
       resultType: 'suc',
       dataInfoList: [
         {key: 'message', message: loginToken.value ? '登录成功(含注册)' : '登录失败'},
-        // {key: 'message2', message: '采量联登'},
         {key: 'message3', message: res?.data?.firstLogin ? '注册并登录' : '仅登录'},
         {key: 'info5', message: window.location.href},
       ],
@@ -272,7 +273,7 @@ const getHomePage = async () => {
     }
     if (homeRes?.data?.increaseQuotaGrid.needResidentInfo != null) {
       needResidentInfo.value = !!homeRes.data.increaseQuotaGrid.needResidentInfo
-      needResidentInfo.value = true // TODO: 测试用
+      // needResidentInfo.value = true // TODO: 测试用
     }
     track({
       productCode: 'ZYR',
@@ -281,7 +282,11 @@ const getHomePage = async () => {
       resultType: 'page',
       dataInfoList: [
         {key: 'message', message: needAssetInfo.value || needResidentInfo.value ? '有提额卡片' : '无提额卡片'},
-        // {key: 'message3', message: ''},
+        {key: 'message3', message: needAssetInfo.value ? '资产情况' : 
+        needAssetInfo.value && needResidentInfo.value ? '、' : '' + (needResidentInfo.value ? '常驻省市' : '')},
+        {key: 'message5', message: needAssetInfo.value ? assetOptions.value?.length == 1 ? 
+          assetOptions.value[0].label + '/' + assetOptions.value[0].noneLabel : 
+          assetOptions.value.map((o) => o.label).join('/') : ''},
         {key: 'info5', message: window.location.href},
       ],
     })
@@ -824,6 +829,10 @@ watch([showPopup, popupStep], ([show]) => {
   color: #0052D9;
   font-weight: 500;
   font-size: 14px;
+}
+.asset-popup__tags :deep(.van-tag.asset-tag--selected),
+.asset-popup__tags :deep(.van-tag.van-tag--primary) {
+  border: 1px solid #0052D9;
 }
 
 .info-card :deep(.van-cell) {

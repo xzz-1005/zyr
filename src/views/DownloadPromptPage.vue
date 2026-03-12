@@ -19,7 +19,7 @@ function getApkInfoByDevice() {
   return 'android'
 }
 
-onMounted(async () => {
+async function onDownload() {
   const token = localStorage.getItem('loginToken')
   const config = token ? { headers: { Authorization: token } } : undefined
   try {
@@ -28,31 +28,25 @@ onMounted(async () => {
       brandType: getPhoneBrand()
     }
     const res = await apkInfo(params, config)
+    if (res?.code != '000000') {
+      showToast(res?.msg)
+      return
+    }
     const data = res?.data ?? res
     apkDownloadUrl.value = data.apkDownloadUrl
     appMarketUrl.value = data.appMarketUrl
     appLaunchFlag.value = data.appLaunchFlag
+    console.log('onDownload=====', document.visibilityState)
+    if (appLaunchFlag.value) {
+      if (!appMarketUrl.value) { showToast('未找到该应用'); return }
+      window.location.href = appMarketUrl.value
+    } else {
+      if (!apkDownloadUrl.value) { showToast('下载app失败'); return }
+      window.location.href = apkDownloadUrl.value
+    }
     console.log('Market=====', appMarketUrl.value, 'apk=====', apkDownloadUrl.value)
   } catch (err) {
     console.error('apk_info error', err)
-  }
-})
-
-function onDownload() {
-  console.log('onDownload=====', document.visibilityState)
-  if (appLaunchFlag.value) {
-    if (!appMarketUrl.value) { showToast('未找到该应用'); return }
-    window.location.href = appMarketUrl.value
-    // 2秒后检测是否跳转失败，失败则降级下载apk
-    // setTimeout(() => {
-    //   if (document.visibilityState === 'visible') {
-    //     if (!apkDownloadUrl.value) { showToast('无法下载app'); return }
-    //     window.location.href = apkDownloadUrl.value
-    //   }
-    // }, 2000);
-  } else {
-    if (!apkDownloadUrl.value) { showToast('下载app失败'); return }
-    window.location.href = apkDownloadUrl.value
   }
 }
 

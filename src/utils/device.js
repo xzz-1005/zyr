@@ -18,28 +18,28 @@ export function isHarmony() {
 }
 
 export function getPhoneBrand() {
-  const parser = new UAParser();
-  const result = parser.getResult();
-  const ua = result.device.vendor
-  // const ua = navigator.userAgent.toLowerCase();
+  // const parser = new UAParser();
+  // const result = parser.getResult();
+  // const ua = result.device.vendor || ''
+  const ua = navigator.userAgent.toLowerCase();
   console.log('getPhoneBrand=====', navigator.userAgent, 'ua=====', ua)
-  if (ua.includes('Apple')) {
+  if (ua.includes('iphone')) {
     return 'ios'; // Apple
-  } else if (ua.includes('Huawei')) {
+  } else if (ua.includes('huawei')) {
     return 'huawei'; // 华为
-  } else if (ua.includes('Honor')) {
+  } else if (ua.includes('honor')) {
     return 'honor'; // 荣耀
-  } else if (ua.includes('Xiaomi') || ua.includes('mi ')) {
+  } else if (ua.includes('xiaomi') || ua.includes('mi ')) {
     return 'xiaomi'; // 小米/红米
-  } else if (ua.includes('OPPO')) {
+  } else if (ua.includes('oppo')) {
     return 'oppo'; // OPPO
-  } else if (ua.includes('Vivo') || ua.includes('vivo ')) {
+  } else if (ua.includes('vivo') || ua.includes('vivo ')) {
     return 'vivo'; // VIVO
-  } else if (ua.includes('Samsung')) {
+  } else if (ua.includes('samsung')) {
     return 'samsung'; // 三星
-  } else if (ua.includes('Meizu')) {
+  } else if (ua.includes('meizu')) {
     return 'meizu'; // 魅族
-  } else if (ua.includes('OnePlus')) {
+  } else if (ua.includes('oneplus')) {
     return 'oneplus'; // 一加
   } else {
     return ua; // 其他品牌（如中兴、联想等）
