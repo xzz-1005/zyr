@@ -366,7 +366,8 @@ const handleViewLimit = () => {
   const haveAssetLabel = getAssetDesc(payload.assetItems)
   if (needAssetInfo.value) {
     if (assets.value.length) {
-      saveAssetInfo(payload, config).then(() => {onlyOneStep.value = true}).catch((err) => console.error('save_asset_info error', err))
+      saveAssetInfo(payload, config).then(() => {}).catch((err) => console.error('save_asset_info error', err))
+      onlyOneStep.value = true
       if (!cityText.value) track({
         productCode: 'ZYR',
         eventType: 'result',

@@ -11,7 +11,7 @@ const routes = [
     path: '/download',
     name: 'Download',
     component: () => import('../views/DownloadPromptPage.vue'),
-    meta: { title: '下载指易融' },
+    meta: { title: '下载指易融APP' },
   },
 ]
 
