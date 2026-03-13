@@ -276,20 +276,39 @@ const getHomePage = async () => {
       needResidentInfo.value = !!homeRes.data.increaseQuotaGrid.needResidentInfo
       // needResidentInfo.value = true // TODO: 测试用
     }
+    const trackList = [
+      {
+        key: 'message',
+        message: needAssetInfo.value || needResidentInfo.value ? '有提额卡片' : '无提额卡片',
+      },
+    ]
+    if (needAssetInfo.value || needResidentInfo.value) {
+      trackList.push({
+        key: 'message3',
+        message: [
+          needAssetInfo.value ? '资产情况' : '',
+          needResidentInfo.value ? '常驻省市' : '',
+        ].filter(Boolean).join('、'),
+      })
+    }
+    if (needAssetInfo.value) {
+      trackList.push({
+        key: 'message5',
+        message: assetOptions.value?.length === 1
+          ? `${assetOptions.value[0].label}/${assetOptions.value[0].noneLabel}`
+          : assetOptions.value.map((o) => o.label).join('/'),
+      })
+    }
+    trackList.push({
+      key: 'info5',
+      message: window.location.href,
+    })
     track({
       productCode: 'ZYR',
       eventType: 'view',
       sceneType: 'receive',
       resultType: 'page',
-      dataInfoList: [
-        {key: 'message', message: needAssetInfo.value || needResidentInfo.value ? '有提额卡片' : '无提额卡片'},
-        {key: 'message3', message: needAssetInfo.value ? '资产情况' : 
-        needAssetInfo.value && needResidentInfo.value ? '、' : '' + (needResidentInfo.value ? '常驻省市' : '')},
-        {key: 'message5', message: needAssetInfo.value ? assetOptions.value?.length == 1 ? 
-          assetOptions.value[0].label + '/' + assetOptions.value[0].noneLabel : 
-          assetOptions.value.map((o) => o.label).join('/') : ''},
-        {key: 'info5', message: window.location.href},
-      ],
+      dataInfoList: trackList,
     })
   } catch (err) {
     console.error('union_login or home_page error', err)
@@ -368,6 +387,7 @@ const handleViewLimit = () => {
     if (assets.value.length) {
       onlyOneStep.value = true
       saveAssetInfo(payload, config).then(() => {}).catch((err) => console.error('save_asset_info error', err))
+      // 有资产、无需城市
       if (!cityText.value) track({
         productCode: 'ZYR',
         eventType: 'result',
@@ -410,7 +430,7 @@ const handleViewLimit = () => {
       return
     }
   }
-  //todo 无资产、有城市。有资产、无城市
+  //无需资产、有城市
    if (cityText.value && !needAssetInfo.value) {
     track({
       productCode: 'ZYR',
@@ -424,6 +444,7 @@ const handleViewLimit = () => {
       ],
     })
   }
+  // 有资产、有城市
   if (assets.value.length && cityText.value) {
     track({
       productCode: 'ZYR',
@@ -432,8 +453,7 @@ const handleViewLimit = () => {
       resultType: 'suc',
       dataInfoList: [
         {key: 'message', message: '流量承接页'},
-        {key: 'message5', message: '资产情况(' + haveAssetLabel + ')'},
-        {key: 'message5', message: '常驻省份(' + cityText.value + ')'},
+        {key: 'message5', message: `1. 资产情况(${haveAssetLabel})` + '、' + `2.常驻省份(${cityText.value})`},
         {key: 'info5', message: window.location.href},
       ],
     })
@@ -621,7 +641,7 @@ watch([showPopup, popupStep], ([show]) => {
     </div>
 
     <!-- 省市区选择 -->
-    <van-popup v-model:show="showAreaPicker" position="bottom" round>
+    <van-popup v-model:show="showAreaPicker" position="bottom" round :close-on-click-overlay="false">
       <van-area
         ref="areaRef"
         title="选择常驻省市"
@@ -651,7 +671,7 @@ watch([showPopup, popupStep], ([show]) => {
     </van-popup>
 
     <!-- 选择资产/城市 两步弹层：第一步资产，第二步城市 -->
-    <van-popup v-model:show="showPopup" position="bottom" round class="asset-popup">
+    <van-popup v-model:show="showPopup" position="bottom" round class="asset-popup" :close-on-click-overlay="false">
       <div class="asset-popup__header">
         <span class="asset-popup__close" @click="closePopup">×</span>
         <span class="asset-popup__title">{{ popupStep === 1 ? '选择资产情况' : '选择常驻省市' }}</span>
