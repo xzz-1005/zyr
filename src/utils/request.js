@@ -12,7 +12,7 @@ request.interceptors.request.use((config) => {
   console.log('request config=====', config, config.url)
   const token = localStorage.getItem('loginToken')
   const sourceAppCode = localStorage.getItem('sourceAppCode')
-  config.headers['Authorization'] = config.url === '/h5/union_login' ? undefined : token || undefined
+  config.headers['Authorization'] = config.url === '/h5/union_login' || config.url === '/common/region/two_linkage' ? undefined : token || undefined
   config.headers['App-Version'] = '1.0.0'
   config.headers['App-Env'] = import.meta.env.VITE_APP_ENV
   config.headers['App-Market'] = 'APP_STORE'

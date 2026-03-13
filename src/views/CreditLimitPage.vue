@@ -172,8 +172,7 @@ const onAreaConfirm = ({ selectedOptions }) => {
   //     cityName: city.text,
   //   }
   //   residentInfoPayload.value = payload
-  //   const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
-  //   saveResidentInfo(payload, config).catch((err) => console.error('save_resident_info error', err))
+  //   saveResidentInfo(payload).catch((err) => console.error('save_resident_info error', err))
   // }
 }
 
@@ -198,8 +197,7 @@ const onSaveAndSubmit = () => {
         cityName: city.text,
       }
       residentInfoPayload.value = payload
-      const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
-      saveResidentInfo(payload, config).catch((err) => console.error('save_resident_info error', err))
+      saveResidentInfo(payload).catch((err) => console.error('save_resident_info error', err))
     }
   }
   showAreaPicker.value = false
@@ -376,14 +374,13 @@ const handleViewLimit = () => {
     return
   }
   const payload = buildSaveAssetPayload()
-  const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
   console.log('handleViewLimit=====', needAssetInfo.value, assets.value, needResidentInfo.value, cityText.value)
 
   const haveAssetLabel = getAssetDesc(payload.assetItems)
   if (needAssetInfo.value) {
     if (assets.value.length) {
       onlyOneStep.value = true
-      saveAssetInfo(payload, config).then(() => {}).catch((err) => console.error('save_asset_info error', err))
+      saveAssetInfo(payload).then(() => {}).catch((err) => console.error('save_asset_info error', err))
       // 有资产、无需城市
       if (!cityText.value) track({
         eventType: 'result',
@@ -469,8 +466,7 @@ const onSkipAsset = () => {
 
 const onSaveAndNextAsset = () => {
   const payload = buildSaveAssetPayload()
-  const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
-  saveAssetInfo(payload, config).catch((err) => console.error('save_asset_info error', err))
+  saveAssetInfo(payload).catch((err) => console.error('save_asset_info error', err))
   const haveAssetLabel = getAssetDesc(payload.assetItems)
   track({
     eventType: 'result',
@@ -504,8 +500,7 @@ const onSaveAndSubmitPopup = () => {
         cityName: city.text,
       }
       residentInfoPayload.value = payload
-      const config = loginToken.value ? { headers: { Authorization: loginToken.value } } : undefined
-      saveResidentInfo(payload, config).catch((err) => console.error('save_resident_info error', err))
+      saveResidentInfo(payload).catch((err) => console.error('save_resident_info error', err))
     }
   }
   showPopup.value = false

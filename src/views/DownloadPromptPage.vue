@@ -1,17 +1,9 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { apkInfo } from '@/api/union'
 import { isIOS, isHarmony, getPhoneBrand } from '@/utils/device'
 import logoImg from '@/assets/images/logo.png'
 import downloadBg from '@/assets/images/download-bg.png'
 import { showToast } from 'vant'
-
-const router = useRouter()
-/** 当前设备对应的 APK 下载链接，由 apk_info 接口按设备类型解析 */
-const apkDownloadUrl = ref('')
-const appMarketUrl = ref('')
-const appLaunchFlag = ref(false)
 
 function getApkInfoByDevice() {
   if (isIOS()) return 'ios'
@@ -20,31 +12,32 @@ function getApkInfoByDevice() {
 }
 
 async function onDownload() {
-  const token = localStorage.getItem('loginToken')
-  const config = token ? { headers: { Authorization: token } } : undefined
   try {
     const params = {
       systemType: getApkInfoByDevice(),
       brandType: getPhoneBrand()
     }
-    const res = await apkInfo(params, config)
+    const res = await apkInfo(params)
     if (res?.code != '000000') {
-      showToast(res?.msg)
+      showToast({
+        message: res?.msg,
+        position: 'top',
+        style: {
+          top: '20px',
+        },
+      })
       return
     }
     const data = res?.data ?? res
-    apkDownloadUrl.value = data.apkDownloadUrl
-    appMarketUrl.value = data.appMarketUrl
-    appLaunchFlag.value = data.appLaunchFlag
     console.log('onDownload=====', document.visibilityState)
-    if (appLaunchFlag.value) {
-      if (!appMarketUrl.value) { showToast('未找到该应用'); return }
-      window.location.href = appMarketUrl.value
+    if (data.appLaunchFlag) {
+      if (!data.appMarketUrl) { showToast('未找到该应用'); return }
+      window.location.href = data.appMarketUrl
     } else {
-      if (!apkDownloadUrl.value) { showToast('下载app失败'); return }
-      window.location.href = apkDownloadUrl.value
+      if (!data.apkDownloadUrl) { showToast('下载app失败'); return }
+      window.location.href = data.apkDownloadUrl
     }
-    console.log('Market=====', appMarketUrl.value, 'apk=====', apkDownloadUrl.value)
+    console.log('Market=====', data.appMarketUrl, 'apk=====', data.apkDownloadUrl)
   } catch (err) {
     console.error('apk_info error', err)
   }
@@ -99,7 +92,7 @@ const onOpen = () => {
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 8px 24px rgba(25, 137, 250, 0.25);
-  margin-bottom: 28px;
+  margin-bottom: 17px;
 }
 
 .app-icon {
@@ -109,16 +102,17 @@ const onOpen = () => {
 }
 
 .title {
-  margin: 0 0 8px;
-  font-size: 24px;
+  margin: 0 0 12px;
+  font-size: 29px;
   font-weight: 600;
-  color: #323233;
+  color: #333333;
 }
 
 .subtitle {
   margin: 0 0 126px;
-  font-size: 14px;
-  color: #969799;
+  font-size: 16px;
+  color: #333333;
+  letter-spacing: 9px;
 }
 
 .actions {
