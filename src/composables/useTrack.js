@@ -7,7 +7,7 @@ import { trackEvent } from '@/api/common'
  */
 export function useTrack() {
   const router = useRouter()
-
+  console.log('useTrack======', router?.currentRoute?.value)
   /**
    * 埋点上报
    * @param {object} eventInfo - 事件名称
@@ -15,7 +15,7 @@ export function useTrack() {
    */
   const track = (eventInfo, params = {}) => {
     const payload = {
-      productCode: eventInfo.productCode,
+      productCode: eventInfo.productCode || router?.currentRoute.value?.query?.productCode,
       eventType: eventInfo.eventType,
       sceneType: eventInfo.sceneType,
       resultType: eventInfo.resultType,

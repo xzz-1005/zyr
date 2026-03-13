@@ -218,7 +218,6 @@ const initLogin = async () => {
     const res = await unionLogin(unionLoginParams)
     loginToken.value = res?.data?.loginToken
     track({
-      productCode: 'ZYR',
       eventType: 'result',
       sceneType: 'login',
       resultType: 'suc',
@@ -304,7 +303,6 @@ const getHomePage = async () => {
       message: window.location.href,
     })
     track({
-      productCode: 'ZYR',
       eventType: 'view',
       sceneType: 'receive',
       resultType: 'page',
@@ -364,7 +362,6 @@ function getAssetDesc(assetItems = []) {
 
 const handleViewLimit = () => {
   track({
-    productCode: 'ZYR',
     eventType: 'click',
     sceneType: 'receive',
     resultType: 'button',
@@ -389,7 +386,6 @@ const handleViewLimit = () => {
       saveAssetInfo(payload, config).then(() => {}).catch((err) => console.error('save_asset_info error', err))
       // 有资产、无需城市
       if (!cityText.value) track({
-        productCode: 'ZYR',
         eventType: 'result',
         sceneType: 'receive',
         resultType: 'suc',
@@ -405,7 +401,6 @@ const handleViewLimit = () => {
       if (needResidentInfo.value && cityText.value) {
         onSaveAndSubmit()
         track({
-          productCode: 'ZYR',
           eventType: 'result',
           sceneType: 'receive',
           resultType: 'suc',
@@ -433,7 +428,6 @@ const handleViewLimit = () => {
   //无需资产、有城市
    if (cityText.value && !needAssetInfo.value) {
     track({
-      productCode: 'ZYR',
       eventType: 'result',
       sceneType: 'receive',
       resultType: 'suc',
@@ -447,13 +441,12 @@ const handleViewLimit = () => {
   // 有资产、有城市
   if (assets.value.length && cityText.value) {
     track({
-      productCode: 'ZYR',
       eventType: 'result',
       sceneType: 'receive',
       resultType: 'suc',
       dataInfoList: [
         {key: 'message', message: '流量承接页'},
-        {key: 'message5', message: `1. 资产情况(${haveAssetLabel})` + '、' + `2.常驻省份(${cityText.value})`},
+        {key: 'message5', message: `资产情况(${haveAssetLabel})` + '、' + `常驻省份(${cityText.value})`},
         {key: 'info5', message: window.location.href},
       ],
     })
@@ -480,7 +473,6 @@ const onSaveAndNextAsset = () => {
   saveAssetInfo(payload, config).catch((err) => console.error('save_asset_info error', err))
   const haveAssetLabel = getAssetDesc(payload.assetItems)
   track({
-    productCode: 'ZYR',
     eventType: 'result',
     sceneType: 'receive',
     resultType: 'suc',
@@ -518,7 +510,6 @@ const onSaveAndSubmitPopup = () => {
   }
   showPopup.value = false
   track({
-    productCode: 'ZYR',
     eventType: 'result',
     sceneType: 'receive',
     resultType: 'suc',
@@ -628,10 +619,8 @@ watch([showPopup, popupStep], ([show]) => {
 
       <!-- 主按钮 -->
       <van-button type="primary" block round class="cta-btn" @click="handleViewLimit">
-        <span class="cta-btn__inner">
-          <img :src="vectorIcon" class="cta-btn__icon" alt="" />
-          点击查看您的专属额度
-        </span>
+        <img :src="vectorIcon" class="cta-btn__icon" alt="" />
+        <span>点击查看您的专属额度</span>
       </van-button>
 
       <!-- 温馨提示 -->
@@ -994,18 +983,12 @@ watch([showPopup, popupStep], ([show]) => {
 }
 
 .cta-btn :deep(.van-button__text) {
-  display: flex;
-}
-
-.cta-btn__inner {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
   gap: 8px;
 }
 
 .cta-btn__icon {
-  height: 20px;
+  height: 22px;
   width: auto;
   vertical-align: middle;
 }
