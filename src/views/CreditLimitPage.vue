@@ -123,7 +123,7 @@ const toggleAsset = (value) => {
 
 const showCityPicker = () => {
   areaPopupFromCta.value = false
-  areaSelectionIsDefault.value = true
+  // areaSelectionIsDefault.value = true
   showAreaPicker.value = true
 }
 
@@ -523,7 +523,7 @@ const onStep2AreaChange = ({ selectedOptions }) => {
 }
 
 watch([showPopup, popupStep], ([show]) => {
-  step2HasSelection.value = false
+  // step2HasSelection.value = false
   if (!show) {
     assetPopupStep1Mode.value = 'all'
     assetPopupStep1SingleOption.value = null
