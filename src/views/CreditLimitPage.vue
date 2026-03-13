@@ -86,15 +86,6 @@ const areaList = ref({
   city_list: {},
 })
 
-onMounted(async () => {
-  try {
-    const res = await getResidentCity()
-    areaList.value = formatAreaList(res?.data?.provinceResponseVos || [])
-  } catch (err) {
-    console.error('get_resident_city error', err)
-  }
-})
-
 const formatNumber = (num) => {
   return num.toLocaleString()
 }
@@ -233,11 +224,21 @@ const initLogin = async () => {
         // ignore
       }
       await getHomePage()
+      residentCityFn()
     }
   } catch (err) {
     console.error('union_login or home_page error', err)
   } finally {
     loading.value = false
+  }
+}
+
+const residentCityFn = async () => {
+  try {
+    const res = await getResidentCity()
+    areaList.value = formatAreaList(res?.data?.provinceResponseVos || [])
+  } catch (err) {
+    console.error('get_resident_city error', err)
   }
 }
 
@@ -631,7 +632,7 @@ watch([showPopup, popupStep], ([show]) => {
         title="选择常驻省市"
         :area-list="areaList"
         :columns-num="2"
-        :visible-option-num='3'
+        :visible-option-num='5'
         :columns-placeholder="['请选择', '请选择']"
         @change="onAreaChange"
         @confirm="onAreaConfirm"
@@ -720,7 +721,7 @@ watch([showPopup, popupStep], ([show]) => {
               ref="assetPopupAreaRef"
               :area-list="areaList"
               :columns-num="2"
-              :visible-option-num='3'
+              :visible-option-num='5'
               :columns-placeholder="['请选择', '请选择']"
               @change="onStep2AreaChange"
             />
