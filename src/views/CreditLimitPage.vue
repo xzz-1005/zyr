@@ -391,7 +391,7 @@ const handleViewLimit = () => {
         resultType: 'suc',
         dataInfoList: [
           {key: 'message', message: '流量承接页'},
-          {key: 'message5', message: '资产情况: (' + haveAssetLabel + ')'},
+          {key: 'message5', message: '资产情况(' + haveAssetLabel + ')'},
           {key: 'info5', message: window.location.href},
         ],
       })
@@ -406,7 +406,7 @@ const handleViewLimit = () => {
           resultType: 'suc',
           dataInfoList: [
             {key: 'message', message: '流量承接页'},
-            {key: 'message5', message: '常驻省份（' + cityText.value + ')'},
+            {key: 'message5', message: '常驻省市（' + cityText.value + ')'},
             {key: 'info5', message: window.location.href},
           ],
         })
@@ -433,7 +433,7 @@ const handleViewLimit = () => {
       resultType: 'suc',
       dataInfoList: [
         {key: 'message', message: '流量承接页'},
-        {key: 'message5', message: '常驻省份(' + cityText.value + ')'},
+        {key: 'message5', message: '常驻省市(' + cityText.value + ')'},
         {key: 'info5', message: window.location.href},
       ],
     })
@@ -446,7 +446,7 @@ const handleViewLimit = () => {
       resultType: 'suc',
       dataInfoList: [
         {key: 'message', message: '流量承接页'},
-        {key: 'message5', message: `资产情况(${haveAssetLabel})` + '、' + `常驻省份(${cityText.value})`},
+        {key: 'message5', message: `资产情况(${haveAssetLabel})` + '、' + `常驻省市(${cityText.value})`},
         {key: 'info5', message: window.location.href},
       ],
     })
@@ -478,7 +478,7 @@ const onSaveAndNextAsset = () => {
     resultType: 'suc',
     dataInfoList: [
       {key: 'message', message: '流量承接页_补充资料弹窗'},
-      {key: 'message5', message: '资产情况: (' + haveAssetLabel + ')'},
+      {key: 'message5', message: '资产情况(' + haveAssetLabel + ')'},
       {key: 'info5', message: window.location.href},
     ],
   })
