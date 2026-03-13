@@ -973,6 +973,10 @@ watch([showPopup, popupStep], ([show]) => {
   font-weight: 500;
 }
 
+.cta-btn :deep(.van-button__text) {
+  display: flex;
+}
+
 .cta-btn__inner {
   display: inline-flex;
   align-items: center;
