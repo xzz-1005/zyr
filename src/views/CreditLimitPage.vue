@@ -267,12 +267,12 @@ const getHomePage = async () => {
     }
     if (homeRes?.data?.increaseQuotaGrid.needAssetInfo != null) {
       needAssetInfo.value = !!homeRes.data.increaseQuotaGrid.needAssetInfo
-      needAssetInfo.value = true // TODO: 测试用
+      // needAssetInfo.value = true // TODO: 测试用
       onlyOneStep.value = !needAssetInfo.value
     }
     if (homeRes?.data?.increaseQuotaGrid.needResidentInfo != null) {
       needResidentInfo.value = !!homeRes.data.increaseQuotaGrid.needResidentInfo
-      needResidentInfo.value = true // TODO: 测试用
+      // needResidentInfo.value = true // TODO: 测试用
     }
     const trackList = [
       {
