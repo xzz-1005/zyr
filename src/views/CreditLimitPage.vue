@@ -21,6 +21,11 @@ const assetOptions = ref([
   { label: '有商业险', value: 'insurance', noneLabel: '无商业险' },
   { label: '以上均不是', value: 'none', noneLabel: '以上均不是' },
 ])
+
+const zhiMaOptions = ref([
+  { label: '700', value: '700' },
+  { label: '800', value: '800' },
+])
 /** 需要作答的资产 value（多项时排除最后一项「以上均不是」，仅一项时即该项） */
 const FIVE_ASSET_VALUES = computed(() =>
   assetOptions.value.length > 1
@@ -78,7 +83,7 @@ const estimateTips = ref('年化综合资金成本（单利）5%～24%，借1万
 const needAssetInfo = ref(false)
 /** 是否展示常驻省市，来自接口 needResidentInfo */
 const needResidentInfo = ref(false)
-const needZhiMa = ref(false)
+const needZhiMaInfo = ref(false)
 const zhiMaText = ref('')
 //0不需要 1个步骤 2个步骤 3个步骤
 const totalStep = ref(0)
@@ -240,6 +245,12 @@ const getHomePage = async () => {
         noneLabel: item.noneDesc,
       }))
     }
+    // if (Array.isArray(list) && list.length) {
+      // zhiMaOptions.value = list.map((item) => ({
+      //   label: '700',
+      //   value: '700',
+      // }))
+    // }
     if (homeRes?.data?.increaseQuotaGrid.needAssetInfo != null) {
       needAssetInfo.value = !!homeRes.data.increaseQuotaGrid.needAssetInfo
       // needAssetInfo.value = true // TODO: 测试用
@@ -249,12 +260,12 @@ const getHomePage = async () => {
       needResidentInfo.value = !!homeRes.data.increaseQuotaGrid.needResidentInfo
       // needResidentInfo.value = true // TODO: 测试用
     }
-    if (homeRes?.data?.increaseQuotaGrid.needZhiMa != null) {
-      needZhiMa.value = !!homeRes.data.increaseQuotaGrid.needZhiMa
+    if (homeRes?.data?.increaseQuotaGrid.needZhiMaInfo != null) {
+      needZhiMaInfo.value = !!homeRes.data.increaseQuotaGrid.needZhiMaInfo
     }
-    // needZhiMa.value = true // TODO: 测试用
+    // needZhiMaInfo.value = true // TODO: 测试用
     if (homeRes?.data?.increaseQuotaGrid) {
-      const trueCount = [needAssetInfo.value, needResidentInfo.value, needZhiMa.value].filter(Boolean).length
+      const trueCount = [needAssetInfo.value, needResidentInfo.value, needZhiMaInfo.value].filter(Boolean).length
       // 全部 false 步骤数= true 的个数
       totalStep.value = trueCount
     }
@@ -264,13 +275,13 @@ const getHomePage = async () => {
         message: needAssetInfo.value || needResidentInfo.value ? '有提额卡片' : '无提额卡片',
       },
     ]
-    if (needAssetInfo.value || needResidentInfo.value || needZhiMa.value) {
+    if (needAssetInfo.value || needResidentInfo.value || needZhiMaInfo.value) {
       trackList.push({
         key: 'message3',
         message: [
           needAssetInfo.value ? '资产情况' : '',
           needResidentInfo.value ? '常驻省市' : '',
-          needZhiMa.value ? '芝麻信用' : '',
+          needZhiMaInfo.value ? '芝麻信用' : '',
         ].filter(Boolean).join('、'),
       })
     }
@@ -359,12 +370,12 @@ const handleViewLimit = () => {
     sceneType: 'receive',
     resultType: 'button',
     dataInfoList: [
-      {key: 'message', message: needAssetInfo.value || needResidentInfo.value || needZhiMa.value ? '有提额卡片' : '无提额卡片'},
+      {key: 'message', message: needAssetInfo.value || needResidentInfo.value || needZhiMaInfo.value ? '有提额卡片' : '无提额卡片'},
       {key: 'message2', message: '提交'},
       {key: 'info5', message: window.location.href},
     ],
   })
-  if ((!needAssetInfo.value && !needResidentInfo.value && !needZhiMa.value) || totalStep.value === 0) {
+  if ((!needAssetInfo.value && !needResidentInfo.value && !needZhiMaInfo.value) || totalStep.value === 0) {
     router.push('/download')
     return
   }
@@ -376,7 +387,7 @@ const handleViewLimit = () => {
       saveAssetInfoFn()
     } else if (needResidentInfo.value && cityText.value) {
       onSaveAndSubmit()
-    } else if (needZhiMa.value && zhiMaText.value) {
+    } else if (needZhiMaInfo.value && zhiMaText.value) {
       saveZhiMaFn()
     }
   } else if (totalStep.value > 1) {
@@ -386,7 +397,7 @@ const handleViewLimit = () => {
         // onSaveAndSubmit()
         totalStep.value -= 1
       }
-      if (needZhiMa.value && zhiMaText.value) {
+      if (needZhiMaInfo.value && zhiMaText.value) {
         // saveZhiMaFn()
         totalStep.value -= 1
       }
@@ -400,7 +411,7 @@ const handleViewLimit = () => {
         return
       }
     } else if (needResidentInfo.value) {
-      if (needZhiMa.value && zhiMaText.value) {
+      if (needZhiMaInfo.value && zhiMaText.value) {
         // saveZhiMaFn()
         totalStep.value -= 1
       }
@@ -412,7 +423,7 @@ const handleViewLimit = () => {
         showPopup.value = true
         return
       }
-    } else if (needZhiMa.value) {
+    } else if (needZhiMaInfo.value) {
       if (zhiMaText.value) {
         saveZhiMaFn()
         totalStep.value -= 1
@@ -502,13 +513,13 @@ const goAfterAssetPopup = () => {
   //todo
   if (needResidentInfo.value && !cityText.value) {
     popupStep.value = 2
-  } else if (needZhiMa.value && !zhiMaText.value) {
+  } else if (needZhiMaInfo.value && !zhiMaText.value) {
     popupStep.value = 3
   } else {
     showPopup.value = false
     router.push('/download')
   }
-  console.log('goAfterAssetPopup=====', needZhiMa.value, !zhiMaText.value, popupStep.value)
+  console.log('goAfterAssetPopup=====', needZhiMaInfo.value, !zhiMaText.value, popupStep.value)
 }
 
 const onSkipAsset = () => {
@@ -699,19 +710,18 @@ watch([showPopup, popupStep], ([show]) => {
           @click="showCityPicker"
         />
 
-        <div class="section" v-if="needAssetInfo">
+        <div class="section" v-if="needZhiMaInfo">
           <div class="section-label">
             芝麻信用
           </div>
           <div class="asset-tags asset-tags--single">
             <template>
               <van-tag
-                v-for="opt in assetOptions"
+                v-for="opt in zhiMaOptions"
                 :key="opt.value"
-                :type="assets.includes(opt.value) ? 'primary' : 'default'"
+                :type="zhiMaText.includes(opt.value) ? 'primary' : 'default'"
                 class="asset-tag"
-                :class="{ 'asset-tag--selected': assets.includes(opt.value) }"
-                @click="toggleAsset(opt.value)"
+                :class="{ 'asset-tag--selected': zhiMaText.includes(opt.value) }"
               >
                 {{ opt.label }}
               </van-tag>
@@ -844,11 +854,11 @@ watch([showPopup, popupStep], ([show]) => {
           <div class="asset-popup__body">
             <div class="asset-popup__tags asset-popup__tags--single">
                 <van-tag
-                  v-for="opt in assetOptions"
+                  v-for="opt in zhiMaOptions"
                   :key="opt.value"
-                  :type="assets.includes(opt.value) ? 'primary' : 'default'"
+                  :type="zhiMaText.includes(opt.value) ? 'primary' : 'default'"
                   class="asset-tag"
-                  :class="{ 'asset-tag--selected': assets.includes(opt.value) }"
+                  :class="{ 'asset-tag--selected': zhiMaText.includes(opt.value) }"
                   @click="toggleAsset(opt.value)"
                 >
                   {{ opt.label }}
