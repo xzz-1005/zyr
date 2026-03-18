@@ -130,6 +130,10 @@ const toggleAsset = (value) => {
   assets.value = next
 }
 
+const toggleZhiMa = (value) => {
+  zhiMaText.value = value
+}
+
 const showCityPicker = () => {
   showAreaPicker.value = true
 }
@@ -715,17 +719,16 @@ watch([showPopup, popupStep], ([show]) => {
             芝麻信用
           </div>
           <div class="asset-tags asset-tags--single">
-            <template>
-              <van-tag
-                v-for="opt in zhiMaOptions"
-                :key="opt.value"
-                :type="zhiMaText.includes(opt.value) ? 'primary' : 'default'"
-                class="asset-tag"
-                :class="{ 'asset-tag--selected': zhiMaText.includes(opt.value) }"
-              >
-                {{ opt.label }}
-              </van-tag>
-            </template>
+            <van-tag
+              v-for="opt in zhiMaOptions"
+              :key="opt.value"
+              :type="zhiMaText.includes(opt.value) ? 'primary' : 'default'"
+              class="asset-tag"
+              :class="{ 'asset-tag--selected': zhiMaText.includes(opt.value) }"
+              @click="toggleZhiMa(opt.value)"
+            >
+              {{ opt.label }}
+            </van-tag>
           </div>
         </div>
       </div>
@@ -772,7 +775,7 @@ watch([showPopup, popupStep], ([show]) => {
         <span class="asset-popup__close" @click="closePopup">×</span>
         <span class="asset-popup__title">{{ popupStep === 1 ? '选择资产情况' : popupStep === 2 ? '选择常驻省市' : '选择芝麻信用' }}</span>
         <span class="asset-popup__right">
-          <span v-if="totalStep > 1" class="asset-popup__skip" @click="onSkipAsset">跳过</span>
+          <span v-if="popupStep != 3" class="asset-popup__skip" @click="onSkipAsset">跳过</span>
         </span>
       </div>
       <!-- 第一步：资产选择 -->
@@ -821,7 +824,7 @@ watch([showPopup, popupStep], ([show]) => {
           :disabled="assetPopupStep1BtnDisabled"
           @click="onSaveAndNextAsset"
         >
-          {{ totalStep > 1 ? '保存并下一步' : '保存并提交' }}
+          {{ popupStep != 3 ? '保存并下一步' : '保存并提交' }}
         </van-button>
       </template>
       <!-- 第二步：城市选择 -->
@@ -846,7 +849,7 @@ watch([showPopup, popupStep], ([show]) => {
           :disabled="!step2HasSelection"
           @click="onSubmitAreaPopup"
         >
-          {{ totalStep > 1 ? '保存并下一步' : '保存并提交' }}
+          {{ popupStep != 3 ? '保存并下一步' : '保存并提交' }}
         </van-button>
       </template>
       <template v-if="popupStep === 3">
@@ -874,14 +877,17 @@ watch([showPopup, popupStep], ([show]) => {
           :disabled="assetPopupStep1BtnDisabled"
           @click="onSubmitZhiMaPopup"
         >
-          {{ totalStep > 1 ? '保存并下一步' : '保存并提交' }}
+          {{ popupStep != 3 ? '保存并下一步' : '保存并提交' }}
         </van-button>
       </template>
       <!-- <div v-if="(needResidentInfo && !cityText) && !onlyOneStep" class="asset-popup__dots"> -->
-      <div v-if="(needResidentInfo && !cityText) && totalStep > 1" class="asset-popup__dots">
-        <span class="asset-popup__dot" :class="{ 'asset-popup__dot--active': popupStep === 1 }" />
-        <span class="asset-popup__dot" :class="{ 'asset-popup__dot--active': popupStep === 2 }" />
-        <span class="asset-popup__dot" :class="{ 'asset-popup__dot--active': popupStep === 3 }" />
+      <div v-if="totalStep > 1" class="asset-popup__dots">
+        <span
+          v-for="i in totalStep"
+          :key="i"
+          class="asset-popup__dot"
+          :class="{ 'asset-popup__dot--active': popupStep === i }"
+        />
       </div>
     </van-popup>
   </div>
