@@ -394,6 +394,7 @@ const handleViewLimit = () => {
         openAssetPopupStep1()
         popupStep.value = 1
         showPopup.value = true
+        return
       }
     } else if (needResidentInfo.value) {
       if (cityText.value) {
@@ -401,6 +402,7 @@ const handleViewLimit = () => {
       } else {
         popupStep.value = 2
         showPopup.value = true
+        return
       }
     } else if (needZhiMaInfo.value) {
       if (zhiMaText.value) {
@@ -408,6 +410,7 @@ const handleViewLimit = () => {
       } else {
         popupStep.value = 3
         showPopup.value = true
+        return
       }
     }
   } else if (totalStep.value > 1) {
