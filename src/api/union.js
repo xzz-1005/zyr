@@ -45,3 +45,12 @@ export function saveAssetInfo(data = {}, config) {
 export function saveResidentInfo(data = {}, config) {
   return request.post('/h5/save_resident_info', { productCode, ...data }, config)
 }
+
+/**
+ * H5 保存芝麻信用
+ * @param {object} data - 请求体（zhiMaText, productCode）
+ * @param {object} [config] - axios 配置，可传 headers（如 Authorization）
+ */
+export function saveZhiMaInfo(data = {}, config) {
+  return request.post('/h5/save_zhi_ma_info', { productCode, ...data }, config)
+}

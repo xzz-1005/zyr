@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTrack } from '@/composables/useTrack'
-import { unionLogin, homePage, saveAssetInfo, saveResidentInfo } from '@/api/union'
+import { unionLogin, homePage, saveAssetInfo, saveResidentInfo, saveZhiMaInfo } from '@/api/union'
 import { getResidentCity } from '@/api/common'
 import homeBg from '@/assets/images/home-bg.png'
 import vectorIcon from '@/assets/images/Vector.png'
@@ -56,19 +56,17 @@ const showAreaPicker = ref(false)
 const areaRef = ref(null)
 /** 当前选择是否为默认「请选择」（用于右上角确认置灰） */
 const areaSelectionIsDefault = ref(true)
-/** 仅当因未选城市点击主按钮而打开弹层时为 true，用于显示「跳过」和「保存并提交」 */
-const areaPopupFromCta = ref(false)
+
 /** 选择资产情况弹层（未选资产/未选城市时点击主按钮弹出），内部分两步 */
 const showPopup = ref(false)
 /** 弹框内步骤：1=资产选择，2=城市选择 */
 const popupStep = ref(1)
-/** 本次打开弹框是否会经历两步（从第一步进入则为 true，直接第二步则为 false，用于是否展示 dots） */
-const assetPopupHasTwoSteps = ref(false)
-const assetPopupAreaRef = ref(null)
+// /** 本次打开弹框是否会经历两步（从第一步进入则为 true，直接第二步则为 false，用于是否展示 dots） */
+// const assetPopupHasTwoSteps = ref(false)
+const popupAreaRef = ref(null)
 /** 第二步是否有选中的省/市（用于「保存并提交」是否 disabled） */
 const step2HasSelection = ref(false)
-/** 是否需要选择资产，来自接口 needAssetInfo */
-const needAssetInfo = ref(false)
+
 const estimateAmount = ref(200000)
 /** 登录 token，来自接口 unionLogin.data.loginToken */
 const loginToken = ref(null)
@@ -76,8 +74,14 @@ const loginToken = ref(null)
 const estimateTitle = ref('预估最高综合可借(元)')
 /** 额度说明，来自接口 homeQuotaGrid.tips */
 const estimateTips = ref('年化综合资金成本（单利）5%～24%，借1万用1年日均息费0.8元起')
+/** 是否需要选择资产，来自接口 needAssetInfo */
+const needAssetInfo = ref(false)
 /** 是否展示常驻省市，来自接口 needResidentInfo */
 const needResidentInfo = ref(false)
+const needZhiMa = ref(false)
+const zhiMaText = ref('')
+//0不需要 1个步骤 2个步骤 3个步骤
+const totalStep = ref(0)
 const loading = ref(false)
 const onlyOneStep = ref(false)
 
@@ -122,8 +126,6 @@ const toggleAsset = (value) => {
 }
 
 const showCityPicker = () => {
-  areaPopupFromCta.value = false
-  // areaSelectionIsDefault.value = true
   showAreaPicker.value = true
 }
 
@@ -165,33 +167,6 @@ const onAreaConfirm = ({ selectedOptions }) => {
   //   residentInfoPayload.value = payload
   //   saveResidentInfo(payload).catch((err) => console.error('save_resident_info error', err))
   // }
-}
-
-const onSkipArea = () => {
-  //TODO 无此场景
-  showAreaPicker.value = false;
-  router.push('/download')
-}
-
-//首页常驻省市
-const onSaveAndSubmit = () => {
-  const options = areaRef.value?.getSelectedOptions?.() ?? []
-  if (options.length) {
-    cityText.value = options.map((o) => o.text).join(' ')
-    const province = options[0]
-    const city = options[1]
-    if (province && city) {
-      const payload = {
-        provinceCode: province.value,
-        provinceName: province.text,
-        cityCode: city.value,
-        cityName: city.text,
-      }
-      residentInfoPayload.value = payload
-      saveResidentInfo(payload).catch((err) => console.error('save_resident_info error', err))
-    }
-  }
-  showAreaPicker.value = false
 }
 
 const unionLoginParams = {
@@ -268,11 +243,20 @@ const getHomePage = async () => {
     if (homeRes?.data?.increaseQuotaGrid.needAssetInfo != null) {
       needAssetInfo.value = !!homeRes.data.increaseQuotaGrid.needAssetInfo
       // needAssetInfo.value = true // TODO: 测试用
-      onlyOneStep.value = !needAssetInfo.value
+      // onlyOneStep.value = !needAssetInfo.value
     }
     if (homeRes?.data?.increaseQuotaGrid.needResidentInfo != null) {
       needResidentInfo.value = !!homeRes.data.increaseQuotaGrid.needResidentInfo
       // needResidentInfo.value = true // TODO: 测试用
+    }
+    if (homeRes?.data?.increaseQuotaGrid.needZhiMa != null) {
+      needZhiMa.value = !!homeRes.data.increaseQuotaGrid.needZhiMa
+      // needZhiMa.value = true // TODO: 测试用
+    }
+    if (homeRes?.data?.increaseQuotaGrid) {
+      const trueCount = [needAssetInfo.value, needResidentInfo.value, needZhiMa.value].filter(Boolean).length
+      // 全部 false 步骤数= true 的个数
+      totalStep.value = trueCount
     }
     const trackList = [
       {
@@ -280,12 +264,13 @@ const getHomePage = async () => {
         message: needAssetInfo.value || needResidentInfo.value ? '有提额卡片' : '无提额卡片',
       },
     ]
-    if (needAssetInfo.value || needResidentInfo.value) {
+    if (needAssetInfo.value || needResidentInfo.value || needZhiMa.value) {
       trackList.push({
         key: 'message3',
         message: [
           needAssetInfo.value ? '资产情况' : '',
           needResidentInfo.value ? '常驻省市' : '',
+          needZhiMa.value ? '芝麻信用' : '',
         ].filter(Boolean).join('、'),
       })
     }
@@ -359,102 +344,166 @@ function getAssetDesc(assetItems = []) {
   return haveLabels.join('、')
 }
 
+const trackResult = (dataInfoList = []) => {
+  track({
+    eventType: 'result',
+    sceneType: 'receive',
+    resultType: 'suc',
+    dataInfoList,
+  })
+}
+
 const handleViewLimit = () => {
   track({
     eventType: 'click',
     sceneType: 'receive',
     resultType: 'button',
     dataInfoList: [
-      {key: 'message', message: needAssetInfo.value || needResidentInfo.value ? '有提额卡片' : '无提额卡片'},
+      {key: 'message', message: needAssetInfo.value || needResidentInfo.value || needZhiMa.value ? '有提额卡片' : '无提额卡片'},
       {key: 'message2', message: '提交'},
       {key: 'info5', message: window.location.href},
     ],
   })
-  if (!needAssetInfo.value && !needResidentInfo.value) {
+  if ((!needAssetInfo.value && !needResidentInfo.value && !needZhiMa.value) || totalStep.value === 0) {
     router.push('/download')
     return
   }
-  const payload = buildSaveAssetPayload()
   console.log('handleViewLimit=====', needAssetInfo.value, assets.value, needResidentInfo.value, cityText.value)
 
   const haveAssetLabel = getAssetDesc(payload.assetItems)
-  if (needAssetInfo.value) {
-    if (assets.value.length) {
-      onlyOneStep.value = true
-      saveAssetInfo(payload).then(() => {}).catch((err) => console.error('save_asset_info error', err))
-      // 有资产、无需城市
-      if (!cityText.value) track({
-        eventType: 'result',
-        sceneType: 'receive',
-        resultType: 'suc',
-        dataInfoList: [
-          {key: 'message', message: '流量承接页'},
-          {key: 'message5', message: '资产情况(' + haveAssetLabel + ')'},
-          {key: 'info5', message: window.location.href},
-        ],
-      })
-    } else {
-      popupStep.value = 1
-      assetPopupHasTwoSteps.value = needResidentInfo.value && !cityText.value
+  //只剩一个步骤时
+  if (totalStep.value === 1) {
+    if (needAssetInfo.value && assets.value.length) {
+      saveAssetInfoFn({message: '流量承接页'})
+    } else if (needResidentInfo.value && cityText.value) {
+      onSaveAndSubmit()
+    } else if (needZhiMa.value && zhiMaText.value) {
+      saveZhiMaFn()
+    }
+  } else if (totalStep.value > 1) {
+    //第一步
+    if (needAssetInfo.value) {
       if (needResidentInfo.value && cityText.value) {
-        onSaveAndSubmit()
-        track({
-          eventType: 'result',
-          sceneType: 'receive',
-          resultType: 'suc',
-          dataInfoList: [
-            {key: 'message', message: '流量承接页'},
-            {key: 'message5', message: '常驻省市（' + cityText.value + ')'},
-            {key: 'info5', message: window.location.href},
-          ],
-        })
+        // onSaveAndSubmit()
+        totalStep.value -= 1
       }
-      openAssetPopupStep1()
-      showPopup.value = true
-      return
+      if (needZhiMa.value && zhiMaText.value) {
+        // saveZhiMaFn()
+        totalStep.value -= 1
+      }
+      if (assets.value.length) {
+        totalStep.value -= 1
+        // saveAssetInfoFn()
+      } else {
+        popupStep.value = 1
+        openAssetPopupStep1()
+        showPopup.value = true
+        return
+      }
+    } else if (needResidentInfo.value) {
+      if (needZhiMa.value && zhiMaText.value) {
+        // saveZhiMaFn()
+        totalStep.value -= 1
+      }
+      if (cityText.value) {
+        // onSaveAndSubmit()
+        totalStep.value -= 1
+      } else {
+        popupStep.value = 2
+        showPopup.value = true
+        return
+      }
+    } else if (needZhiMa.value) {
+      if (zhiMaText.value) {
+        saveZhiMaFn()
+        totalStep.value -= 1
+      } else {
+        popupStep.value = 3
+        showPopup.value = true
+        return
+      }
     }
   }
-  if (needResidentInfo.value) {
-    if (cityText.value) {onSaveAndSubmit()} 
-    else {
-      popupStep.value = 2
-      assetPopupHasTwoSteps.value = false
-      showPopup.value = true
-      return
-    }
-  }
+  // if (needAssetInfo.value) {
+  //   if (assets.value.length) {
+  //     // onlyOneStep.value = true
+  //     totalStep.value = 1
+  //     saveAssetInfo(payload).then(() => {}).catch((err) => console.error('save_asset_info error', err))
+  //     // 有资产、无需城市
+  //     if (!cityText.value) track({
+  //       eventType: 'result',
+  //       sceneType: 'receive',
+  //       resultType: 'suc',
+  //       dataInfoList: [
+  //         {key: 'message', message: '流量承接页'},
+  //         {key: 'message5', message: '资产情况(' + haveAssetLabel + ')'},
+  //         {key: 'info5', message: window.location.href},
+  //       ],
+  //     })
+  //   } else {
+  //     popupStep.value = 1
+  //     assetPopupHasTwoSteps.value = needResidentInfo.value && !cityText.value
+  //     if (needResidentInfo.value && cityText.value) {
+  //       onSaveAndSubmit()
+  //       track({
+  //         eventType: 'result',
+  //         sceneType: 'receive',
+  //         resultType: 'suc',
+  //         dataInfoList: [
+  //           {key: 'message', message: '流量承接页'},
+  //           {key: 'message5', message: '常驻省市（' + cityText.value + ')'},
+  //           {key: 'info5', message: window.location.href},
+  //         ],
+  //       })
+  //     }
+  //     openAssetPopupStep1()
+  //     showPopup.value = true
+  //     return
+  //   }
+  // }
+  // if (needResidentInfo.value) {
+  //   if (cityText.value) {onSaveAndSubmit()} 
+  //   else {
+  //     popupStep.value = 2
+  //     assetPopupHasTwoSteps.value = false
+  //     showPopup.value = true
+  //     return
+  //   }
+  // }
   //无需资产、有城市
-   if (cityText.value && !needAssetInfo.value) {
-    track({
-      eventType: 'result',
-      sceneType: 'receive',
-      resultType: 'suc',
-      dataInfoList: [
-        {key: 'message', message: '流量承接页'},
-        {key: 'message5', message: '常驻省市(' + cityText.value + ')'},
-        {key: 'info5', message: window.location.href},
-      ],
-    })
-  }
+  //  if (cityText.value && !needAssetInfo.value) {
+  //   track({
+  //     eventType: 'result',
+  //     sceneType: 'receive',
+  //     resultType: 'suc',
+  //     dataInfoList: [
+  //       {key: 'message', message: '流量承接页'},
+  //       {key: 'message5', message: '常驻省市(' + cityText.value + ')'},
+  //       {key: 'info5', message: window.location.href},
+  //     ],
+  //   })
+  // }
   // 有资产、有城市
-  if (assets.value.length && cityText.value) {
-    track({
-      eventType: 'result',
-      sceneType: 'receive',
-      resultType: 'suc',
-      dataInfoList: [
-        {key: 'message', message: '流量承接页'},
-        {key: 'message5', message: `资产情况(${haveAssetLabel})` + '、' + `常驻省市(${cityText.value})`},
-        {key: 'info5', message: window.location.href},
-      ],
-    })
-  }
+  // if (assets.value.length && cityText.value) {
+  //   track({
+  //     eventType: 'result',
+  //     sceneType: 'receive',
+  //     resultType: 'suc',
+  //     dataInfoList: [
+  //       {key: 'message', message: '流量承接页'},
+  //       {key: 'message5', message: `资产情况(${haveAssetLabel})` + '、' + `常驻省市(${cityText.value})`},
+  //       {key: 'info5', message: window.location.href},
+  //     ],
+  //   })
+  // }
   router.push('/download')
 }
 
 const goAfterAssetPopup = () => {
   if (needResidentInfo.value && !cityText.value) {
     popupStep.value = 2
+  } else if (needZhiMa.value && !zhiMaText.value) {
+    popupStep.value = 3
   } else {
     showPopup.value = false
     router.push('/download')
@@ -465,57 +514,98 @@ const onSkipAsset = () => {
   goAfterAssetPopup()
 }
 
-const onSaveAndNextAsset = () => {
+const saveAssetInfoFn = (trackInfo = {message = '流量承接页', message5: ''}) => {
   const payload = buildSaveAssetPayload()
   saveAssetInfo(payload).catch((err) => console.error('save_asset_info error', err))
   const haveAssetLabel = getAssetDesc(payload.assetItems)
+  trackInfo.message5 = trackInfo.message5 ? trackInfo.message5 : '资产情况(' + haveAssetLabel + ')'
   track({
     eventType: 'result',
     sceneType: 'receive',
     resultType: 'suc',
     dataInfoList: [
-      {key: 'message', message: '流量承接页_补充资料弹窗'},
-      {key: 'message5', message: '资产情况(' + haveAssetLabel + ')'},
+      {key: 'message', message: trackInfo.message},
+      {key: 'message5', message: trackInfo.message5},
       {key: 'info5', message: window.location.href},
     ],
   })
-  if (needResidentInfo.value && cityText.value) {
-    onSaveAndSubmitPopup()
-    return
-  }
+}
+
+const onSaveAndNextAsset = () => {
+  saveAssetInfoFn({message: '流量承接页_补充资料弹窗'})
+  // if (needResidentInfo.value && cityText.value) {
+  //   onSubmitAreaPopup()
+  //   return
+  // }
   goAfterAssetPopup()
 }
 
-//弹窗常驻省市
-const onSaveAndSubmitPopup = () => {
-  const options = assetPopupAreaRef.value?.getSelectedOptions?.() ?? []
-  if (options.length) {
-    cityText.value = options.map((o) => o.text).join(' ')
-    const province = options[0]
-    const city = options[1]
-    if (province && city) {
-      const payload = {
-        provinceCode: province.value,
-        provinceName: province.text,
-        cityCode: city.value,
-        cityName: city.text,
-      }
-      residentInfoPayload.value = payload
-      saveResidentInfo(payload).catch((err) => console.error('save_resident_info error', err))
+const saveResidentInfoFn = (options) => {
+  cityText.value = options.map((o) => o.text).join(' ')
+  const province = options[0]
+  const city = options[1]
+  if (province && city) {
+    const payload = {
+      provinceCode: province.value,
+      provinceName: province.text,
+      cityCode: city.value,
+      cityName: city.text,
     }
+    residentInfoPayload.value = payload
+    saveResidentInfo(payload).catch((err) => console.error('save_resident_info error', err))
   }
+}
+
+//首页常驻省市
+const onSaveAndSubmit = (dataInfoList) => {
+  const options = areaRef.value?.getSelectedOptions?.() ?? []
+  if (options.length) {
+    saveResidentInfoFn(options)
+  }
+  showAreaPicker.value = false
+  const infoList = [
+    {key: 'message', message: '流量承接页'},
+    {key: 'message5', message: '常驻省市（' + cityText.value + ')'},
+    {key: 'info5', message: window.location.href},
+  ]
+  const dataInfoList = dataInfoList ? dataInfoList : infoList
+  trackResult(dataInfoList)
+}
+
+//弹窗常驻省市
+const onSubmitAreaPopup = () => {
+  const options = popupAreaRef.value?.getSelectedOptions?.() ?? []
+  if (options.length) {
+    saveResidentInfoFn(options)
+  }
+  const dataInfoList = [
+    {key: 'message', message: '流量承接页_补充资料弹窗'},
+    {key: 'message5', message: '常驻省市（' + cityText.value + ')'},
+    {key: 'info5', message: window.location.href},
+  ]
+  trackResult(dataInfoList)
   showPopup.value = false
-  track({
-    eventType: 'result',
-    sceneType: 'receive',
-    resultType: 'suc',
-    dataInfoList: [
-      {key: 'message', message: '流量承接页_补充资料弹窗'},
-      {key: 'message5', message: '常驻省市(' + cityText.value + ')'},
-      {key: 'info5', message: window.location.href},
-    ],
-  })
-  router.push('/download')
+  goAfterAssetPopup()
+}
+
+const saveZhiMaFn = (pageText = '流量承接页') => {
+  const payload = {
+    zhiMaText: zhiMaText.value,
+  }
+  saveZhiMaInfo(payload).catch((err) => console.error('save_zhima_info error', err))
+  const dataInfoList = [
+    {key: 'message', message: pageText},
+    {key: 'message5', message: '芝麻信用（' + zhiMaText.value + ')'},
+    {key: 'info5', message: window.location.href},
+  ]
+  trackResult(dataInfoList)
+}
+
+//弹窗芝麻信用
+const onSubmitZhiMaPopup = () => {
+  showPopup.value = false
+  saveZhiMaFn('流量承接页_补充资料弹窗')
+  goAfterAssetPopup()
 }
 
 const onStep2AreaChange = ({ selectedOptions }) => {
@@ -638,9 +728,7 @@ watch([showPopup, popupStep], ([show]) => {
         @cancel="showAreaPicker = false"
       >
         <template #confirm>
-          <span v-if="areaPopupFromCta" @click="onSkipArea">跳过</span>
           <span
-            v-else
             class="area-confirm-btn"
             :class="{ 'area-confirm-btn--disabled': areaSelectionIsDefault }"
             @click.stop="handleAreaConfirmClick($event)"
@@ -649,18 +737,15 @@ watch([showPopup, popupStep], ([show]) => {
           </span>
         </template>
       </van-area>
-      <van-button v-if="areaPopupFromCta" type="primary" block round class="area-submit-btn" @click="onSaveAndSubmit">
-        保存并提交
-      </van-button>
     </van-popup>
 
     <!-- 选择资产/城市 两步弹层：第一步资产，第二步城市 -->
     <van-popup v-model:show="showPopup" position="bottom" round class="asset-popup" :close-on-click-overlay="false">
       <div class="asset-popup__header">
         <span class="asset-popup__close" @click="closePopup">×</span>
-        <span class="asset-popup__title">{{ popupStep === 1 ? '选择资产情况' : '选择常驻省市' }}</span>
+        <span class="asset-popup__title">{{ popupStep === 1 ? '选择资产情况' : popupStep === 2 ? '选择常驻省市' : '选择芝麻信用' }}</span>
         <span class="asset-popup__right">
-          <span v-if="popupStep === 1 && needResidentInfo && !cityText" class="asset-popup__skip" @click="onSkipAsset">跳过</span>
+          <span v-if="totalStep > 1" class="asset-popup__skip" @click="onSkipAsset">跳过</span>
         </span>
       </div>
       <!-- 第一步：资产选择 -->
@@ -709,15 +794,15 @@ watch([showPopup, popupStep], ([show]) => {
           :disabled="assetPopupStep1BtnDisabled"
           @click="onSaveAndNextAsset"
         >
-          {{ needResidentInfo && !cityText ? '保存并下一步' : '保存并提交' }}
+          {{ totalStep > 1 ? '保存并下一步' : '保存并提交' }}
         </van-button>
       </template>
       <!-- 第二步：城市选择 -->
-      <template v-else>
+      <template v-if="popupStep === 2">
         <div class="asset-popup__content">
           <div class="asset-popup__area-wrap">
             <van-area
-              ref="assetPopupAreaRef"
+              ref="popupAreaRef"
               :area-list="areaList"
               :columns-num="2"
               :visible-option-num='5'
@@ -732,14 +817,44 @@ watch([showPopup, popupStep], ([show]) => {
           round
           class="asset-popup__btn"
           :disabled="!step2HasSelection"
-          @click="onSaveAndSubmitPopup"
+          @click="onSubmitAreaPopup"
         >
-          保存并提交
+          {{ totalStep > 1 ? '保存并下一步' : '保存并提交' }}
         </van-button>
       </template>
-      <div v-if="(needResidentInfo && !cityText) && !onlyOneStep" class="asset-popup__dots">
+      <template v-else>
+        <div class="asset-popup__content">
+          <div class="asset-popup__body">
+            <div class="asset-popup__tags asset-popup__tags--single">
+                <van-tag
+                  v-for="opt in assetOptions"
+                  :key="opt.value"
+                  :type="assets.includes(opt.value) ? 'primary' : 'default'"
+                  class="asset-tag"
+                  :class="{ 'asset-tag--selected': assets.includes(opt.value) }"
+                  @click="toggleAsset(opt.value)"
+                >
+                  {{ opt.label }}
+                </van-tag>
+            </div>
+          </div>
+        </div>
+        <van-button
+          type="primary"
+          block
+          round
+          class="asset-popup__btn"
+          :disabled="assetPopupStep1BtnDisabled"
+          @click="onSubmitZhiMaPopup"
+        >
+          {{ totalStep > 1 ? '保存并下一步' : '保存并提交' }}
+        </van-button>
+      </template>
+      <!-- <div v-if="(needResidentInfo && !cityText) && !onlyOneStep" class="asset-popup__dots"> -->
+      <div v-if="(needResidentInfo && !cityText) && totalStep > 1" class="asset-popup__dots">
         <span class="asset-popup__dot" :class="{ 'asset-popup__dot--active': popupStep === 1 }" />
         <span class="asset-popup__dot" :class="{ 'asset-popup__dot--active': popupStep === 2 }" />
+        <span class="asset-popup__dot" :class="{ 'asset-popup__dot--active': popupStep === 3 }" />
       </div>
     </van-popup>
   </div>
@@ -1061,11 +1176,6 @@ watch([showPopup, popupStep], ([show]) => {
   font-size: 14px;
   color: #979797;
   cursor: pointer;
-}
-
-.asset-popup__content {
-  // height: 300px;
-  // overflow: auto;
 }
 
 .asset-popup__body {
