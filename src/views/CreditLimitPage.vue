@@ -387,12 +387,28 @@ const handleViewLimit = () => {
 
   //只剩一个步骤时
   if (totalStep.value === 1) {
-    if (needAssetInfo.value && assets.value.length) {
-      saveAssetInfoFn()
-    } else if (needResidentInfo.value && cityText.value) {
-      onSaveAndSubmit()
-    } else if (needZhiMaInfo.value && zhiMaText.value) {
-      saveZhiMaFn()
+    if (needAssetInfo.value) {
+      if (assets.value.length) {
+        saveAssetInfoFn()
+      } else {
+        openAssetPopupStep1()
+        popupStep.value = 1
+        showPopup.value = true
+      }
+    } else if (needResidentInfo.value) {
+      if (cityText.value) {
+        onSaveAndSubmit()
+      } else {
+        popupStep.value = 2
+        showPopup.value = true
+      }
+    } else if (needZhiMaInfo.value) {
+      if (zhiMaText.value) {
+        saveZhiMaFn()
+      } else {
+        popupStep.value = 3
+        showPopup.value = true
+      }
     }
   } else if (totalStep.value > 1) {
     //第一步
@@ -779,7 +795,7 @@ watch([showPopup, popupStep], ([show]) => {
         </span>
       </div>
       <!-- 第一步：资产选择 -->
-      <template v-if="popupStep === 1">
+      <template v-if="needAssetInfo && !assets.length">
         <div class="asset-popup__content">
           <div class="asset-popup__body">
             <div class="asset-popup__tags" :class="{ 'asset-popup__tags--single': assetPopupStep1Mode === 'single' }">
@@ -828,7 +844,7 @@ watch([showPopup, popupStep], ([show]) => {
         </van-button>
       </template>
       <!-- 第二步：城市选择 -->
-      <template v-if="popupStep === 2">
+      <template v-if="needResidentInfo && !cityText">
         <div class="asset-popup__content">
           <div class="asset-popup__area-wrap">
             <van-area
@@ -852,7 +868,7 @@ watch([showPopup, popupStep], ([show]) => {
           {{ popupStep != 3 ? '保存并下一步' : '保存并提交' }}
         </van-button>
       </template>
-      <template v-if="popupStep === 3">
+      <template v-if="needZhiMaInfo && !zhiMaText">
         <div class="asset-popup__content">
           <div class="asset-popup__body">
             <div class="asset-popup__tags asset-popup__tags--single">
