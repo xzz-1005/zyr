@@ -251,8 +251,8 @@ const getHomePage = async () => {
     }
     if (homeRes?.data?.increaseQuotaGrid.needZhiMa != null) {
       needZhiMa.value = !!homeRes.data.increaseQuotaGrid.needZhiMa
-      // needZhiMa.value = true // TODO: 测试用
     }
+    // needZhiMa.value = true // TODO: 测试用
     if (homeRes?.data?.increaseQuotaGrid) {
       const trueCount = [needAssetInfo.value, needResidentInfo.value, needZhiMa.value].filter(Boolean).length
       // 全部 false 步骤数= true 的个数
@@ -370,11 +370,10 @@ const handleViewLimit = () => {
   }
   console.log('handleViewLimit=====', needAssetInfo.value, assets.value, needResidentInfo.value, cityText.value)
 
-  const haveAssetLabel = getAssetDesc(payload.assetItems)
   //只剩一个步骤时
   if (totalStep.value === 1) {
     if (needAssetInfo.value && assets.value.length) {
-      saveAssetInfoFn({message: '流量承接页'})
+      saveAssetInfoFn()
     } else if (needResidentInfo.value && cityText.value) {
       onSaveAndSubmit()
     } else if (needZhiMa.value && zhiMaText.value) {
@@ -393,7 +392,7 @@ const handleViewLimit = () => {
       }
       if (assets.value.length) {
         totalStep.value -= 1
-        // saveAssetInfoFn()
+        saveAssetInfoFn({}, false)
       } else {
         popupStep.value = 1
         openAssetPopupStep1()
@@ -500,6 +499,7 @@ const handleViewLimit = () => {
 }
 
 const goAfterAssetPopup = () => {
+  //todo
   if (needResidentInfo.value && !cityText.value) {
     popupStep.value = 2
   } else if (needZhiMa.value && !zhiMaText.value) {
@@ -508,27 +508,24 @@ const goAfterAssetPopup = () => {
     showPopup.value = false
     router.push('/download')
   }
+  console.log('goAfterAssetPopup=====', needZhiMa.value, !zhiMaText.value, popupStep.value)
 }
 
 const onSkipAsset = () => {
   goAfterAssetPopup()
 }
 
-const saveAssetInfoFn = (trackInfo = {message = '流量承接页', message5: ''}) => {
+const saveAssetInfoFn = (trackInfo = {message, message5}, needTrack = true) => {
   const payload = buildSaveAssetPayload()
   saveAssetInfo(payload).catch((err) => console.error('save_asset_info error', err))
   const haveAssetLabel = getAssetDesc(payload.assetItems)
-  trackInfo.message5 = trackInfo.message5 ? trackInfo.message5 : '资产情况(' + haveAssetLabel + ')'
-  track({
-    eventType: 'result',
-    sceneType: 'receive',
-    resultType: 'suc',
-    dataInfoList: [
-      {key: 'message', message: trackInfo.message},
-      {key: 'message5', message: trackInfo.message5},
-      {key: 'info5', message: window.location.href},
-    ],
-  })
+  if (!needTrack) return
+  const dataInfoList = [
+    {key: 'message', message: trackInfo.message ? trackInfo.message : '流量承接页'},
+    {key: 'message5', message: trackInfo.message5 ? trackInfo.message5 : '资产情况(' + haveAssetLabel + ')'},
+    {key: 'info5', message: window.location.href},
+  ]
+  trackResult(dataInfoList)
 }
 
 const onSaveAndNextAsset = () => {
@@ -557,7 +554,7 @@ const saveResidentInfoFn = (options) => {
 }
 
 //首页常驻省市
-const onSaveAndSubmit = (dataInfoList) => {
+const onSaveAndSubmit = (extraInfoList) => {
   const options = areaRef.value?.getSelectedOptions?.() ?? []
   if (options.length) {
     saveResidentInfoFn(options)
@@ -568,7 +565,7 @@ const onSaveAndSubmit = (dataInfoList) => {
     {key: 'message5', message: '常驻省市（' + cityText.value + ')'},
     {key: 'info5', message: window.location.href},
   ]
-  const dataInfoList = dataInfoList ? dataInfoList : infoList
+  const dataInfoList = extraInfoList ? extraInfoList : infoList
   trackResult(dataInfoList)
 }
 
@@ -701,6 +698,26 @@ watch([showPopup, popupStep], ([show]) => {
           :value-class="cityText ? '' : 'placeholder'"
           @click="showCityPicker"
         />
+
+        <div class="section" v-if="needAssetInfo">
+          <div class="section-label">
+            芝麻信用
+          </div>
+          <div class="asset-tags asset-tags--single">
+            <template>
+              <van-tag
+                v-for="opt in assetOptions"
+                :key="opt.value"
+                :type="assets.includes(opt.value) ? 'primary' : 'default'"
+                class="asset-tag"
+                :class="{ 'asset-tag--selected': assets.includes(opt.value) }"
+                @click="toggleAsset(opt.value)"
+              >
+                {{ opt.label }}
+              </van-tag>
+            </template>
+          </div>
+        </div>
       </div>
 
       <!-- 主按钮 -->
@@ -822,7 +839,7 @@ watch([showPopup, popupStep], ([show]) => {
           {{ totalStep > 1 ? '保存并下一步' : '保存并提交' }}
         </van-button>
       </template>
-      <template v-else>
+      <template v-if="popupStep === 3">
         <div class="asset-popup__content">
           <div class="asset-popup__body">
             <div class="asset-popup__tags asset-popup__tags--single">
