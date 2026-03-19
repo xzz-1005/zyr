@@ -383,6 +383,11 @@ const handleViewLimit = () => {
   })
 
   if (!needAssetInfo.value && !needResidentInfo.value && !needSesameScore.value) {
+    const trackInfoList = [
+      {key: 'message', message: '流量承接页'},
+      {key: 'info5', message: window.location.href},
+    ]
+    trackResult(trackInfoList)
     onDownload()
     return
   }
