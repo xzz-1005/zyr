@@ -111,6 +111,9 @@ const refreshPage = () => {
   assets.value = []
   sesameScoreText.value = ''
   cityText.value = ''
+  cityObj.value = []
+  areaPickerCode.value = ''
+  areaSelectionIsDefault.value = true
   getHomePage()
 }
 
