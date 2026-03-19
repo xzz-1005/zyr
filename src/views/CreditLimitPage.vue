@@ -280,8 +280,8 @@ const getHomePage = async () => {
         key: 'message3',
         message: [
           needAssetInfo.value ? '资产情况' : '',
-          needResidentInfo.value ? '常驻省市' : '',
           needSesameScore.value ? '芝麻分' : '',
+          needResidentInfo.value ? '常驻省市' : '',
         ].filter(Boolean).join('、'),
       })
     }
@@ -395,8 +395,8 @@ const handleViewLimit = () => {
     {key: 'message', message: '流量承接页'},
     {key: 'message5', message: [
       needAssetInfo.value && assets.value.length ? '资产情况(' + getAssetDesc(buildSaveAssetPayload().assetItems) + ')' : '',
-      needResidentInfo.value && cityText.value ? '常驻省市(' + cityText.value + ')' : '',
       needSesameScore.value && sesameScoreText.value ? '芝麻分(' + sesameScoreDesc + ')' : '',
+      needResidentInfo.value && cityText.value ? '常驻省市(' + cityText.value + ')' : '',
     ].filter(Boolean).join('、')},
     {key: 'info5', message: window.location.href},
   ]
