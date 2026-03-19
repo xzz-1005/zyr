@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTrack } from '@/composables/useTrack'
 import { unionLogin, homePage, saveAssetInfo, saveResidentInfo, saveSesameScoreInfo } from '@/api/union'
@@ -61,6 +61,8 @@ const cityObj = ref()
 const residentInfoPayload = ref(null)
 const showAreaPicker = ref(false)
 const areaRef = ref(null)
+/** 首页 van-area v-model：末级城市 code（与 Vant Area 一致） */
+const areaPickerCode = ref('')
 /** 当前选择是否为默认「请选择」（用于右上角确认置灰） */
 const areaSelectionIsDefault = ref(true)
 
@@ -144,8 +146,18 @@ const toggleSesameScore = (value) => {
   }
 }
 
-const showCityPicker = () => {
+const showCityPicker = async () => {
   showAreaPicker.value = true
+  await nextTick()
+  // 两列：省、市；modelValue 为市级 code
+  const cityCode = cityObj.value?.[1]?.value
+  if (cityCode != null && String(cityCode).trim() !== '') {
+    areaPickerCode.value = String(cityCode).trim()
+    areaSelectionIsDefault.value = !isAreaSelectionValid(cityObj.value)
+  } else {
+    areaPickerCode.value = ''
+    areaSelectionIsDefault.value = true
+  }
 }
 
 /** 判断省市区选择是否为有效选择（非占位「请选择」） */
@@ -173,6 +185,10 @@ const onAreaConfirm = ({ selectedOptions }) => {
   const texts = selectedOptions.map((o) => o.text)
   cityText.value = texts.join(' ')
   cityObj.value = selectedOptions
+  const city = selectedOptions[1]
+  if (city?.value != null) {
+    areaPickerCode.value = String(city.value)
+  }
   showAreaPicker.value = false
 }
 
@@ -487,8 +503,8 @@ const saveResidentInfoFn = (options) => {
 //首页常驻省市
 const onSaveAndSubmitCity = () => {
   // const options = areaRef.value?.getSelectedOptions?.() ?? []
-  const options = cityObj.value
-  if (options.length) {
+  const options = cityObj.value || []
+  if (options && options.length) {
     saveResidentInfoFn(options)
   }
   showAreaPicker.value = false
@@ -699,6 +715,7 @@ async function onDownload() {
     <van-popup v-model:show="showAreaPicker" position="bottom" round :close-on-click-overlay="false">
       <van-area
         ref="areaRef"
+        v-model="areaPickerCode"
         title="选择常驻省市"
         :area-list="areaList"
         :columns-num="2"
