@@ -258,7 +258,7 @@ const getHomePage = async () => {
         noneLabel: item.noneDesc,
       }))
     }
-    const sesameScoreList = homeRes?.data?.increaseQuotaGrid.sesameScoreItemList
+    const sesameScoreList = homeRes?.data?.increaseQuotaGrid?.sesameScoreItemList
     if (Array.isArray(sesameScoreList) && sesameScoreList.length) {
       sesameScoreOptions.value = sesameScoreList.map((item) => ({
         label: item.displayDesc,
@@ -620,7 +620,7 @@ async function onDownload() {
 
       <!-- 提额信息卡片 -->
       <div
-        v-if="needAssetInfo || needResidentInfo"
+        v-if="needAssetInfo || needResidentInfo || needSesameScore"
         class="card info-card"
       >
         <div class="card-title">提额信息 <span class="optional">(选填, 获取更高额度)</span></div>
@@ -707,26 +707,26 @@ async function onDownload() {
 
     <!-- 省市区选择 -->
     <van-popup v-model:show="showAreaPicker" position="bottom" round :close-on-click-overlay="false">
-      <van-area
-        ref="areaRef"
-        title="选择常驻省市"
-        :area-list="areaList"
-        :columns-num="2"
-        :visible-option-num='5'
-        :columns-placeholder="['请选择', '请选择']"
-        @change="onAreaChange"
-        @cancel="showAreaPicker = false"
-      >
-        <template #confirm>
-          <span
-            class="area-confirm-btn"
-            :class="{ 'area-confirm-btn--disabled': areaSelectionIsDefault }"
-            @click.stop="handleAreaConfirmClick($event)"
-          >
-            确认
-          </span>
-        </template>
-      </van-area>
+        <van-area
+          ref="areaRef"
+          title="选择常驻省市"
+          :area-list="areaList"
+          :columns-num="2"
+          :visible-option-num='5'
+          :columns-placeholder="['请选择', '请选择']"
+          @change="onAreaChange"
+          @cancel="showAreaPicker = false"
+        >
+          <template #confirm>
+            <span
+              class="area-confirm-btn"
+              :class="{ 'area-confirm-btn--disabled': areaSelectionIsDefault }"
+              @click.stop="handleAreaConfirmClick($event)"
+            >
+              确认
+            </span>
+          </template>
+        </van-area>
     </van-popup>
 
     <!-- 选择资产/城市 两步弹层：第一步资产，第二步芝麻分 ，第三步城市 -->
