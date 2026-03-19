@@ -101,8 +101,13 @@ const formatNumber = (num) => {
 
 const closePopup = () => {
   showPopup.value = false
+  refreshPage()
+}
+
+const refreshPage = () => {
   assets.value = []
   sesameScoreText.value = ''
+  cityText.value = ''
   getHomePage()
 }
 
@@ -262,15 +267,15 @@ const getHomePage = async () => {
     }
     if (homeRes?.data?.increaseQuotaGrid.needAssetInfo != null) {
       needAssetInfo.value = !!homeRes.data.increaseQuotaGrid.needAssetInfo
-      // needAssetInfo.value = true // TODO: 测试用
     }
     if (homeRes?.data?.increaseQuotaGrid.needResidentInfo != null) {
       needResidentInfo.value = !!homeRes.data.increaseQuotaGrid.needResidentInfo
-      // needResidentInfo.value = true // TODO: 测试用
     }
     if (homeRes?.data?.increaseQuotaGrid.needSesameScore != null) {
       needSesameScore.value = !!homeRes.data.increaseQuotaGrid.needSesameScore
     }
+    // needAssetInfo.value = true // TODO: 测试用
+    // needResidentInfo.value = true // TODO: 测试用
     // needSesameScore.value = true // TODO: 测试用
     const trackList = [
       {
@@ -410,34 +415,29 @@ const handleViewLimit = () => {
   ]
   trackResult(dataInfoList)
 
-  if (needAssetInfo.value) {
-    if (assets.value.length) {
-      saveAssetInfoFn({}, false)
-    } else {
-      openAssetPopupStep1()
-      showPopup.value = true
-      return
-    }
+  if (needAssetInfo.value && assets.value.length) saveAssetInfoFn({}, false)
+
+  if (needResidentInfo.value && cityText.value) onSaveAndSubmit()
+
+  if (needSesameScore.value && sesameScoreText.value) saveSesameScoreFn()
+
+  if (needAssetInfo.value && !assets.value.length) {
+    openAssetPopupStep1()
+    showPopup.value = true
+    return
   }
 
-  if (needResidentInfo.value) {
-    if (cityText.value) {
-      onSaveAndSubmit()
-    } else {
+  if (needResidentInfo.value && !cityText.value) {
+    showPopup.value = true
+    return
+  }
+
+  if (needSesameScore.value && !sesameScoreText.value) {
       showPopup.value = true
       return
-    }
-
-    if (needSesameScore.value) {
-      if (sesameScoreText.value) {
-        saveSesameScoreFn()
-      } else {
-        showPopup.value = true
-        return
-      }
-    }
-    onDownload()
   }
+
+  onDownload()
 }
 
 const currentStepIndex = computed(() => {
@@ -545,7 +545,7 @@ const onStep2AreaChange = ({ selectedOptions }) => {
 }
 
 watch([showPopup, currentStep], ([show]) => {
-  // step2HasSelection.value = false
+  step2HasSelection.value = false
   if (!show) {
     assetPopupStep1Mode.value = 'all'
     assetPopupStep1SingleOption.value = null
@@ -573,6 +573,7 @@ async function onDownload() {
           top: '20px',
         },
       })
+      refreshPage()
       return
     }
     const data = res?.data ?? res
@@ -586,6 +587,7 @@ async function onDownload() {
     }
     console.log('Market=====', data.appMarketUrl, 'apk=====', data.apkDownloadUrl)
   } catch (err) {
+    refreshPage()
     console.error('apk_info error', err)
   }
 }
