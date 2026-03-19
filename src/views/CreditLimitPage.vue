@@ -8,6 +8,9 @@ import homeBg from '@/assets/images/home-bg.png'
 import vectorIcon from '@/assets/images/Vector.png'
 import { formatAreaList } from '@/utils/common'
 import { useRoute } from 'vue-router'
+import { apkInfo } from '@/api/union'
+import { isIOS, isHarmony, getPhoneBrand } from '@/utils/device'
+import { showToast } from 'vant'
 
 const router = useRouter()
 const route = useRoute()
@@ -380,7 +383,7 @@ const handleViewLimit = () => {
   })
 
   if (!needAssetInfo.value && !needResidentInfo.value && !needSesameScore.value) {
-    router.push('/download')
+    onDownload()
     return
   }
   if (needAssetInfo.value && !assets.value.length) totalStepList.value.push('assets')
@@ -428,7 +431,7 @@ const handleViewLimit = () => {
         return
       }
     }
-    router.push('/download')
+    onDownload()
   }
 }
 
@@ -444,7 +447,7 @@ const goAfterAssetPopup = () => {
   } else {
     currentStep.value = ''
     showPopup.value = false
-    router.push('/download') // 如果当前步骤是最后一个，则跳转到下载页
+    onDownload() // 如果当前步骤是最后一个，则跳转到下载页
   }
   console.log('goAfterAssetPopup=====', currentStep.value)
 }
@@ -543,6 +546,44 @@ watch([showPopup, currentStep], ([show]) => {
     assetPopupStep1SingleOption.value = null
   }
 })
+
+function getApkInfoByDevice() {
+  if (isIOS()) return 'ios'
+  if (isHarmony()) return 'harmonyos'
+  return 'android'
+}
+
+async function onDownload() {
+  try {
+    const params = {
+      systemType: getApkInfoByDevice(),
+      brandType: getPhoneBrand()
+    }
+    const res = await apkInfo(params)
+    if (res?.code != '000000') {
+      showToast({
+        message: res?.msg,
+        position: 'top',
+        style: {
+          top: '20px',
+        },
+      })
+      return
+    }
+    const data = res?.data ?? res
+    console.log('onDownload=====', document.visibilityState)
+    if (data.appLaunchFlag) {
+      if (!data.appMarketUrl) { showToast('未找到该应用'); return }
+      window.location.href = data.appMarketUrl
+    } else {
+      if (!data.apkDownloadUrl) { showToast('下载app失败'); return }
+      window.location.href = data.apkDownloadUrl
+    }
+    console.log('Market=====', data.appMarketUrl, 'apk=====', data.apkDownloadUrl)
+  } catch (err) {
+    console.error('apk_info error', err)
+  }
+}
 
 </script>
 
