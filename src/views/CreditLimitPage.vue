@@ -56,6 +56,7 @@ const assetPopupStep1BtnDisabled = computed(() => {
 })
 
 const cityText = ref('')
+const cityObj = ref()
 /** 已选常驻省市对应的接口参数，用于 handleViewLimit 时一并提交 */
 const residentInfoPayload = ref(null)
 const showAreaPicker = ref(false)
@@ -171,20 +172,8 @@ const handleAreaConfirmClick = (e) => {
 const onAreaConfirm = ({ selectedOptions }) => {
   const texts = selectedOptions.map((o) => o.text)
   cityText.value = texts.join(' ')
+  cityObj.value = selectedOptions
   showAreaPicker.value = false
-  // 一期不直接保存省份
-  // const province = selectedOptions[0]
-  // const city = selectedOptions[1]
-  // if (province && city) {
-  //   const payload = {
-  //     provinceCode: province.value,
-  //     provinceName: province.text,
-  //     cityCode: city.value,
-  //     cityName: city.text,
-  //   }
-  //   residentInfoPayload.value = payload
-  //   saveResidentInfo(payload).catch((err) => console.error('save_resident_info error', err))
-  // }
 }
 
 const unionLoginParams = {
@@ -280,7 +269,7 @@ const getHomePage = async () => {
     const trackList = [
       {
         key: 'message',
-        message: needAssetInfo.value || needResidentInfo.value ? '有提额卡片' : '无提额卡片',
+        message: needAssetInfo.value || needResidentInfo.value || needSesameScore.value ? '有提额卡片' : '无提额卡片',
       },
     ]
     if (needAssetInfo.value || needResidentInfo.value || needSesameScore.value) {
@@ -417,7 +406,7 @@ const handleViewLimit = () => {
 
   if (needAssetInfo.value && assets.value.length) saveAssetInfoFn({}, false)
 
-  if (needResidentInfo.value && cityText.value) onSaveAndSubmit()
+  if (needResidentInfo.value && cityText.value) onSaveAndSubmitCity()
 
   if (needSesameScore.value && sesameScoreText.value) saveSesameScoreFn()
 
@@ -496,8 +485,9 @@ const saveResidentInfoFn = (options) => {
 }
 
 //首页常驻省市
-const onSaveAndSubmit = () => {
-  const options = areaRef.value?.getSelectedOptions?.() ?? []
+const onSaveAndSubmitCity = () => {
+  // const options = areaRef.value?.getSelectedOptions?.() ?? []
+  const options = cityObj.value
   if (options.length) {
     saveResidentInfoFn(options)
   }
@@ -565,6 +555,7 @@ async function onDownload() {
       brandType: getPhoneBrand()
     }
     const res = await apkInfo(params)
+    refreshPage()
     if (res?.code != '000000') {
       showToast({
         message: res?.msg,
@@ -573,7 +564,6 @@ async function onDownload() {
           top: '20px',
         },
       })
-      refreshPage()
       return
     }
     const data = res?.data ?? res
@@ -707,26 +697,26 @@ async function onDownload() {
 
     <!-- 省市区选择 -->
     <van-popup v-model:show="showAreaPicker" position="bottom" round :close-on-click-overlay="false">
-        <van-area
-          ref="areaRef"
-          title="选择常驻省市"
-          :area-list="areaList"
-          :columns-num="2"
-          :visible-option-num='5'
-          :columns-placeholder="['请选择', '请选择']"
-          @change="onAreaChange"
-          @cancel="showAreaPicker = false"
-        >
-          <template #confirm>
-            <span
-              class="area-confirm-btn"
-              :class="{ 'area-confirm-btn--disabled': areaSelectionIsDefault }"
-              @click.stop="handleAreaConfirmClick($event)"
-            >
-              确认
-            </span>
-          </template>
-        </van-area>
+      <van-area
+        ref="areaRef"
+        title="选择常驻省市"
+        :area-list="areaList"
+        :columns-num="2"
+        :visible-option-num='5'
+        :columns-placeholder="['请选择', '请选择']"
+        @change="onAreaChange"
+        @cancel="showAreaPicker = false"
+      >
+        <template #confirm>
+          <span
+            class="area-confirm-btn"
+            :class="{ 'area-confirm-btn--disabled': areaSelectionIsDefault }"
+            @click.stop="handleAreaConfirmClick($event)"
+          >
+            确认
+          </span>
+        </template>
+      </van-area>
     </van-popup>
 
     <!-- 选择资产/城市 两步弹层：第一步资产，第二步芝麻分 ，第三步城市 -->

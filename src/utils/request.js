@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { isIOS } from './device'
+import { isIOS, isHarmony } from './device'
 
 const baseURL = import.meta.env.VITE_APP_BASE_URL || ''
 
@@ -16,12 +16,12 @@ request.interceptors.request.use((config) => {
   config.headers['App-Version'] = '1.0.0'
   config.headers['App-Env'] = import.meta.env.VITE_APP_ENV
   config.headers['App-Market'] = 'APP_STORE'
-  config.headers['Device-Id'] = 'AJSHQZDSD'
-  config.headers['Device-Brand'] = 'APPLE 11 PRO'
-  config.headers['Device-Model'] = 'MWDH2CHA'
-  config.headers['Device-Type'] = isIOS() ? 'IOS' : 'ANDROID'
-  config.headers['System-Version'] = '26.2'
-  config.headers['System-Version-Code'] = isIOS() ? 'IOS_26.2' : 'ANDROID_26.2'
+  // config.headers['Device-Id'] = 'AJSHQZDSD'
+  // config.headers['Device-Brand'] = 'APPLE 11 PRO'
+  // config.headers['Device-Model'] = 'MWDH2CHA'
+  config.headers['Device-Type'] = isIOS() ? 'IOS' : isHarmony() ? 'HARMONYOS' : 'ANDROID'
+  // config.headers['System-Version'] = '26.2'
+  // config.headers['System-Version-Code'] = isIOS() ? 'IOS_26.2' : 'ANDROID_26.2'
   config.headers['App-Code'] = 'ZYR'
   config.headers['Source-App-Code'] = config.url === '/h5/union_login' ? undefined : sourceAppCode || undefined  
   return config
