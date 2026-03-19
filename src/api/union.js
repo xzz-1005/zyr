@@ -52,5 +52,5 @@ export function saveResidentInfo(data = {}, config) {
  * @param {object} [config] - axios 配置，可传 headers（如 Authorization）
  */
 export function saveSesameScoreInfo(data = {}, config) {
-  return request.post('/h5/save_zhi_ma_info', { productCode, ...data }, config)
+  return request.post('/h5/save_sesame_score', { productCode, ...data }, config)
 }

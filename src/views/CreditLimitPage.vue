@@ -23,10 +23,10 @@ const assetOptions = ref([
 ])
 
 const sesameScoreOptions = ref([
-  { label: '700以上', value: '700' },
-  { label: '650-700', value: '650' },
-  { label: '600-650', value: '600' },
-  { label: '小于600', value: 'less_than' },
+  { label: '700以上', value: '1' },
+  { label: '650-700', value: '2' },
+  { label: '600-650', value: '3' },
+  { label: '小于600', value: '4' },
 ])
 /** 需要作答的资产 value（多项时排除最后一项「以上均不是」，仅一项时即该项） */
 const FIVE_ASSET_VALUES = computed(() =>
@@ -133,7 +133,6 @@ const toggleSesameScore = (value) => {
   } else {
     sesameScoreText.value = value
   }
-  console.log('1111111111=====', sesameScoreText.value)
 }
 
 const showCityPicker = () => {
@@ -366,6 +365,9 @@ const trackResult = (dataInfoList = []) => {
 }
 
 const handleViewLimit = () => {
+  totalStepList.value = []
+  currentStep.value = ''
+
   track({
     eventType: 'click',
     sceneType: 'receive',
@@ -376,24 +378,25 @@ const handleViewLimit = () => {
       {key: 'info5', message: window.location.href},
     ],
   })
-  totalStepList.value = []
-  currentStep.value = ''
+
   if (!needAssetInfo.value && !needResidentInfo.value && !needSesameScore.value) {
     router.push('/download')
     return
   }
   if (needAssetInfo.value && !assets.value.length) totalStepList.value.push('assets')
-  if (needResidentInfo.value && !cityText.value) totalStepList.value.push('city')
   if (needSesameScore.value && !sesameScoreText.value) totalStepList.value.push('sesameScore')
+  if (needResidentInfo.value && !cityText.value) totalStepList.value.push('city')
   currentStep.value = totalStepList.value.length ? totalStepList.value[0] : ''
   console.log('handleViewLimit=====', totalStepList.value, currentStepIndex.value)
+
+  const sesameScoreDesc = sesameScoreOptions.value.find((o) => o.value === sesameScoreText.value)?.label || ''
 
   const dataInfoList = [
     {key: 'message', message: '流量承接页'},
     {key: 'message5', message: [
       needAssetInfo.value && assets.value.length ? '资产情况(' + getAssetDesc(buildSaveAssetPayload().assetItems) + ')' : '',
       needResidentInfo.value && cityText.value ? '常驻省市(' + cityText.value + ')' : '',
-      needSesameScore.value && sesameScoreText.value ? '芝麻分(' + sesameScoreText.value + ')' : '',
+      needSesameScore.value && sesameScoreText.value ? '芝麻分(' + sesameScoreDesc + ')' : '',
     ].filter(Boolean).join('、')},
     {key: 'info5', message: window.location.href},
   ]
@@ -510,13 +513,14 @@ const onSubmitAreaPopup = () => {
 
 const saveSesameScoreFn = (pageText = '流量承接页', needTrack = false) => {
   const payload = {
-    sesameScoreText: sesameScoreText.value,
+    sesameScoreCode: sesameScoreText.value,
   }
   saveSesameScoreInfo(payload).catch((err) => console.error('save_SesameScore_info error', err))
+  const sesameScoreDesc = sesameScoreOptions.value.find((o) => o.value === sesameScoreText.value)?.label || ''
   if (!needTrack) return
   const dataInfoList = [
     {key: 'message', message: pageText},
-    {key: 'message5', message: '芝麻分（' + sesameScoreText.value + ')'},
+    {key: 'message5', message: '芝麻分（' + sesameScoreDesc + ')'},
     {key: 'info5', message: window.location.href},
   ]
   trackResult(dataInfoList)
@@ -677,7 +681,7 @@ watch([showPopup, currentStep], ([show]) => {
       </van-area>
     </van-popup>
 
-    <!-- 选择资产/城市 两步弹层：第一步资产，第二步城市 -->
+    <!-- 选择资产/城市 两步弹层：第一步资产，第二步芝麻分 ，第三步城市 -->
     <van-popup v-model:show="showPopup" position="bottom" round class="asset-popup" :close-on-click-overlay="false">
       <div class="asset-popup__header">
         <span class="asset-popup__close" @click="closePopup">×</span>
@@ -735,31 +739,7 @@ watch([showPopup, currentStep], ([show]) => {
           {{ currentStepIndex + 1 < totalStepList.length ? '保存并下一步' : '保存并提交' }}
         </van-button>
       </template>
-      <!-- 第二步：城市选择 -->
-      <template v-if="currentStep === 'city'">
-        <div class="asset-popup__content">
-          <div class="asset-popup__area-wrap">
-            <van-area
-              ref="popupAreaRef"
-              :area-list="areaList"
-              :columns-num="2"
-              :visible-option-num='5'
-              :columns-placeholder="['请选择', '请选择']"
-              @change="onStep2AreaChange"
-            />
-          </div>
-        </div>
-        <van-button
-          type="primary"
-          block
-          round
-          class="asset-popup__btn"
-          :disabled="!step2HasSelection"
-          @click="onSubmitAreaPopup"
-        >
-          {{ currentStepIndex + 1 < totalStepList.length ? '保存并下一步' : '保存并提交' }}
-        </van-button>
-      </template>
+
       <template v-if="currentStep === 'sesameScore'">
         <div class="asset-popup__content">
           <div class="asset-popup__body">
@@ -784,6 +764,32 @@ watch([showPopup, currentStep], ([show]) => {
           class="asset-popup__btn"
           :disabled="!sesameScoreText"
           @click="onSubmitSesameScorePopup"
+        >
+          {{ currentStepIndex + 1 < totalStepList.length ? '保存并下一步' : '保存并提交' }}
+        </van-button>
+      </template>
+
+      <!-- 第三步：城市选择 -->
+      <template v-if="currentStep === 'city'">
+        <div class="asset-popup__content">
+          <div class="asset-popup__area-wrap">
+            <van-area
+              ref="popupAreaRef"
+              :area-list="areaList"
+              :columns-num="2"
+              :visible-option-num='5'
+              :columns-placeholder="['请选择', '请选择']"
+              @change="onStep2AreaChange"
+            />
+          </div>
+        </div>
+        <van-button
+          type="primary"
+          block
+          round
+          class="asset-popup__btn"
+          :disabled="!step2HasSelection"
+          @click="onSubmitAreaPopup"
         >
           {{ currentStepIndex + 1 < totalStepList.length ? '保存并下一步' : '保存并提交' }}
         </van-button>
