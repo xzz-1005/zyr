@@ -26,10 +26,10 @@ const assetOptions = ref([
 ])
 
 const sesameScoreOptions = ref([
-  { label: '700以上', value: '1' },
-  { label: '650-700', value: '2' },
-  { label: '600-650', value: '3' },
-  { label: '小于600', value: '4' },
+  { label: '700以上', value: '4' },
+  { label: '650-700', value: '3' },
+  { label: '600-650', value: '2' },
+  { label: '小于600', value: '1' },
 ])
 /** 需要作答的资产 value（多项时排除最后一项「以上均不是」，仅一项时即该项） */
 const FIVE_ASSET_VALUES = computed(() =>
@@ -1098,7 +1098,8 @@ async function onDownload() {
 }
 
 .disclaimer {
-  margin-top: 20px;
+  margin-top: 16px;
+  margin-bottom: 24px;
   padding: 0 4px;
   font-size: 12px;
   color: #BEC0C2;
