@@ -1015,7 +1015,7 @@ async function onDownload() {
 .asset-popup__tags :deep(.van-tag) {
   cursor: pointer;
   height: 36px;
-  padding: 0 12px;
+  // padding: 0 12px;
   font-size: 13px;
   margin: 0;
   border: none;
