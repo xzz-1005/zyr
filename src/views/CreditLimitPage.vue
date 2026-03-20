@@ -953,13 +953,21 @@ async function onDownload() {
   line-height: 20px;
 }
 
+@font-face {
+  font-family: 'DIN Alternate Bold';
+  src: url('../fonts/DIN Alternate Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 .estimate-amount {
   font-size: 56px;
   font-weight: 700;
   color: #000000;
   line-height: 56px;
   margin-bottom: 7px;
-  font-family: 'DIN Alternate';
+  font-family: 'DIN Alternate Bold';
 }
 
 .estimate-desc {
