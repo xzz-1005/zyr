@@ -380,7 +380,7 @@ const trackResult = (dataInfoList = []) => {
   })
 }
 
-const handleViewLimit = () => {
+const handleViewLimit = async () => {
   totalStepList.value = []
   currentStep.value = ''
 
@@ -423,11 +423,11 @@ const handleViewLimit = () => {
   ]
   trackResult(dataInfoList)
 
-  if (needAssetInfo.value && assets.value.length) saveAssetInfoFn({}, false)
+  if (needAssetInfo.value && assets.value.length) await saveAssetInfoFn({}, false).catch((err) => console.error('save_asset_info error', err))
 
-  if (needResidentInfo.value && cityText.value) onSaveAndSubmitCity()
+  if (needResidentInfo.value && cityText.value) await onSaveAndSubmitCity().catch((err) => console.error('save_resident_info error', err))
 
-  if (needSesameScore.value && sesameScoreText.value) saveSesameScoreFn()
+  if (needSesameScore.value && sesameScoreText.value) await saveSesameScoreFn().catch((err) => console.error('save_SesameScore_info error', err))
 
   if (needAssetInfo.value && !assets.value.length) {
     openAssetPopupStep1()
@@ -469,9 +469,9 @@ const onSkipAsset = () => {
   goAfterAssetPopup()
 }
 
-const saveAssetInfoFn = (trackInfo = {message, message5}, needTrack = true) => {
+const saveAssetInfoFn = async (trackInfo = {message, message5}, needTrack = true) => {
   const payload = buildSaveAssetPayload()
-  saveAssetInfo(payload).catch((err) => console.error('save_asset_info error', err))
+  await saveAssetInfo(payload).catch((err) => console.error('save_asset_info error', err))
   const haveAssetLabel = getAssetDesc(payload.assetItems)
   if (!needTrack) return
   const dataInfoList = [
@@ -482,12 +482,12 @@ const saveAssetInfoFn = (trackInfo = {message, message5}, needTrack = true) => {
   trackResult(dataInfoList)
 }
 
-const onSaveAndNextAsset = () => {
-  saveAssetInfoFn({message: '流量承接页_补充资料弹窗'})
+const onSaveAndNextAsset = async () => {
+  await saveAssetInfoFn({message: '流量承接页_补充资料弹窗'}).catch((err) => console.error('save_asset_info error', err))
   goAfterAssetPopup()
 }
 
-const saveResidentInfoFn = (options) => {
+const saveResidentInfoFn = async(options) => {
   cityText.value = options.map((o) => o.text).join(' ')
   const province = options[0]
   const city = options[1]
@@ -499,16 +499,16 @@ const saveResidentInfoFn = (options) => {
       cityName: city.text,
     }
     residentInfoPayload.value = payload
-    saveResidentInfo(payload).catch((err) => console.error('save_resident_info error', err))
+    await saveResidentInfo(payload).catch((err) => console.error('save_resident_info error', err))
   }
 }
 
 //首页常驻省市
-const onSaveAndSubmitCity = () => {
+const onSaveAndSubmitCity = async () => {
   // const options = areaRef.value?.getSelectedOptions?.() ?? []
   const options = cityObj.value || []
   if (options && options.length) {
-    saveResidentInfoFn(options)
+    await saveResidentInfoFn(options).catch((err) => console.error('save_resident_info error', err))
   }
   showAreaPicker.value = false
 }
@@ -528,11 +528,11 @@ const onSubmitAreaPopup = () => {
   goAfterAssetPopup()
 }
 
-const saveSesameScoreFn = (pageText = '流量承接页', needTrack = false) => {
+const saveSesameScoreFn = async(pageText = '流量承接页', needTrack = false) => {
   const payload = {
     sesameScoreCode: sesameScoreText.value,
   }
-  saveSesameScoreInfo(payload).catch((err) => console.error('save_SesameScore_info error', err))
+  await saveSesameScoreInfo(payload).catch((err) => console.error('save_SesameScore_info error', err))
   const sesameScoreDesc = sesameScoreOptions.value.find((o) => o.value === sesameScoreText.value)?.label || ''
   if (!needTrack) return
   const dataInfoList = [
@@ -544,8 +544,8 @@ const saveSesameScoreFn = (pageText = '流量承接页', needTrack = false) => {
 }
 
 //弹窗芝麻分
-const onSubmitSesameScorePopup = () => {
-  saveSesameScoreFn('流量承接页_补充资料弹窗', true)
+const onSubmitSesameScorePopup = async () => {
+  await saveSesameScoreFn('流量承接页_补充资料弹窗', true).catch((err) => console.error('save_SesameScore_info error', err))
   goAfterAssetPopup()
 }
 
