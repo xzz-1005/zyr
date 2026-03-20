@@ -411,16 +411,21 @@ const handleViewLimit = async () => {
   console.log('handleViewLimit=====', totalStepList.value, currentStepIndex.value)
 
   const sesameScoreDesc = sesameScoreOptions.value.find((o) => o.value === sesameScoreText.value)?.label || ''
-
-  const dataInfoList = [
-    {key: 'message', message: '流量承接页'},
-    {key: 'message5', message: [
-      needAssetInfo.value && assets.value.length ? '资产情况(' + getAssetDesc(buildSaveAssetPayload().assetItems) + ')' : '',
-      needSesameScore.value && sesameScoreText.value ? '芝麻分(' + sesameScoreDesc + ')' : '',
-      needResidentInfo.value && cityText.value ? '常驻省市(' + cityText.value + ')' : '',
-    ].filter(Boolean).join('、')},
-    {key: 'info5', message: window.location.href},
-  ]
+  let dataInfoList = [
+      {key: 'message', message: '流量承接页'},
+      {key: 'info5', message: window.location.href},
+    ]
+  if (assets.value.length || sesameScoreText.value || cityText.value) {
+    dataInfoList = [
+      {key: 'message', message: '流量承接页'},
+      {key: 'message5', message: [
+        needAssetInfo.value && assets.value.length ? '资产情况(' + getAssetDesc(buildSaveAssetPayload().assetItems) + ')' : '',
+        needSesameScore.value && sesameScoreText.value ? '芝麻分(' + sesameScoreDesc + ')' : '',
+        needResidentInfo.value && cityText.value ? '常驻省市(' + cityText.value + ')' : '',
+      ].filter(Boolean).join('、')},
+      {key: 'info5', message: window.location.href},
+    ]
+  }
   trackResult(dataInfoList)
 
   if (needAssetInfo.value && assets.value.length) await saveAssetInfoFn({}, false).catch((err) => console.error('save_asset_info error', err))
